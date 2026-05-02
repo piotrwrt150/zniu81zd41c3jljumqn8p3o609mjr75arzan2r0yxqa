@@ -11,6 +11,28 @@ local aiming = false
 local randomOffset = Vector3.new(0,0,0)
 local lastOffsetChange = tick()
 
+-- Prediction: śledzenie prędkości każdego gracza
+local velocityCache = {}   -- [Player] = { lastPos, lastTick, velocity }
+local function GetPredictedPos(plr, basePos)
+    if not Aim.Prediction then return basePos end
+    local now = tick()
+    local cache = velocityCache[plr]
+    if cache then
+        local dt = now - cache.lastTick
+        if dt > 0 and dt < 0.5 then
+            -- aktualizuj prędkość z wygładzaniem
+            local rawVel = (basePos - cache.lastPos) / dt
+            cache.velocity = cache.velocity:Lerp(rawVel, 0.35)
+        end
+        cache.lastPos = basePos
+        cache.lastTick = now
+        return basePos + cache.velocity * Aim.PredictionStrength
+    else
+        velocityCache[plr] = { lastPos = basePos, lastTick = now, velocity = Vector3.new() }
+        return basePos
+    end
+end
+
 local FOVCircle = Drawing.new("Circle")
 FOVCircle.Visible = Aim.FOV_Enabled
 FOVCircle.Radius = Aim.FOV_Radius
@@ -76,6 +98,7 @@ RunService.RenderStepped:Connect(function()
         if target and target.Character and target.Character:FindFirstChild(Aim.AimPart) then
             if distToMouse <= Aim.Deadzone then return end
             local tPos = target.Character[Aim.AimPart].Position
+            tPos = GetPredictedPos(target, tPos)  -- << Prediction
             if Aim.Randomization then
                 if tick() - lastOffsetChange > 0.2 then
                     randomOffset = randomOffset:Lerp(Vector3.new((math.random()-0.5)*Aim.RandomIntensity, (math.random()-0.5)*Aim.RandomIntensity, (math.random()-0.5)*Aim.RandomIntensity), 0.1)
@@ -91,3 +114,13 @@ RunService.RenderStepped:Connect(function()
         end
     end
 end)
+
+-- Expose cleanup
+local _conns = {}
+_G.ScoutCheat._aimbotConnections = _conns
+getgenv().ScoutCheat._cleanupAimbot = function()
+    for _,c in pairs(_conns) do pcall(function() c:Disconnect() end) end
+    if FOVCircle then pcall(function() FOVCircle:Remove() end) end
+    table.clear(velocityCache)
+    print("[Aimbot] Rozładowano.")
+end

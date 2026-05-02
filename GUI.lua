@@ -1,31 +1,34 @@
 local UserInputService = game:GetService("UserInputService")
-local HttpService = game:GetService("HttpService")
-local RunService = game:GetService("RunService")
+local HttpService      = game:GetService("HttpService")
+local RunService       = game:GetService("RunService")
 
-local Aim = _G.ScoutCheat.Config.Aimbot
+local Aim     = _G.ScoutCheat.Config.Aimbot
 local Visuals = _G.ScoutCheat.Config.Visuals
 
--- Config System
+-- ─── Config Save / Load ───────────────────────────────────────────────────────
 local CONFIG_FILE = "scout_cheat_config.json"
 
 local function SaveConfig()
     local data = {
-        Aim_Enabled     = Aim.Enabled,
-        Aim_Smoothness  = Aim.Smoothness,
-        Aim_FOV_Radius  = Aim.FOV_Radius,
-        Aim_FOV_Enabled = Aim.FOV_Enabled,
-        Aim_AimPart     = Aim.AimPart,
-        Aim_TeamCheck   = Aim.TeamCheck,
-        Aim_Deadzone    = Aim.Deadzone,
-        Aim_VisibleCheck = Aim.VisibleCheck,
-        Vis_Fullbright  = Visuals.Fullbright,
-        Vis_NoFog       = Visuals.NoFog,
+        Aim_Enabled        = Aim.Enabled,
+        Aim_Smoothness     = Aim.Smoothness,
+        Aim_FOV_Radius     = Aim.FOV_Radius,
+        Aim_FOV_Enabled    = Aim.FOV_Enabled,
+        Aim_AimPart        = Aim.AimPart,
+        Aim_TeamCheck      = Aim.TeamCheck,
+        Aim_Deadzone       = Aim.Deadzone,
+        Aim_VisibleCheck   = Aim.VisibleCheck,
+        Aim_Prediction     = Aim.Prediction,
+        Aim_PredStrength   = Aim.PredictionStrength,
+        Vis_Fullbright     = Visuals.Fullbright,
+        Vis_NoFog          = Visuals.NoFog,
+        Vis_BulletTracers  = Visuals.BulletTracers,
     }
     if writefile then
         writefile(CONFIG_FILE, HttpService:JSONEncode(data))
-        print("[Config] Zapisano ustawienia do " .. CONFIG_FILE)
+        print("[Config] Zapisano do " .. CONFIG_FILE)
     else
-        warn("[Config] Twój executor nie wspiera writefile!")
+        warn("[Config] Executor nie wspiera writefile!")
     end
 end
 
@@ -33,119 +36,236 @@ local function LoadConfig()
     if readfile and isfile and isfile(CONFIG_FILE) then
         local ok, data = pcall(function() return HttpService:JSONDecode(readfile(CONFIG_FILE)) end)
         if ok and data then
-            Aim.Enabled      = data.Aim_Enabled      or Aim.Enabled
-            Aim.Smoothness   = data.Aim_Smoothness   or Aim.Smoothness
-            Aim.FOV_Radius   = data.Aim_FOV_Radius   or Aim.FOV_Radius
-            Aim.FOV_Enabled  = data.Aim_FOV_Enabled  ~= nil and data.Aim_FOV_Enabled or Aim.FOV_Enabled
-            Aim.AimPart      = data.Aim_AimPart      or Aim.AimPart
-            Aim.TeamCheck    = data.Aim_TeamCheck     ~= nil and data.Aim_TeamCheck or Aim.TeamCheck
-            Aim.Deadzone     = data.Aim_Deadzone      or Aim.Deadzone
-            Aim.VisibleCheck = data.Aim_VisibleCheck  ~= nil and data.Aim_VisibleCheck or Aim.VisibleCheck
-            Visuals.Fullbright = data.Vis_Fullbright ~= nil and data.Vis_Fullbright or Visuals.Fullbright
-            Visuals.NoFog    = data.Vis_NoFog        ~= nil and data.Vis_NoFog or Visuals.NoFog
-            print("[Config] Wczytano ustawienia z " .. CONFIG_FILE)
+            local function b(new, old) return new ~= nil and new or old end
+            Aim.Enabled            = b(data.Aim_Enabled,       Aim.Enabled)
+            Aim.Smoothness         = b(data.Aim_Smoothness,    Aim.Smoothness)
+            Aim.FOV_Radius         = b(data.Aim_FOV_Radius,    Aim.FOV_Radius)
+            Aim.FOV_Enabled        = b(data.Aim_FOV_Enabled,   Aim.FOV_Enabled)
+            Aim.AimPart            = b(data.Aim_AimPart,       Aim.AimPart)
+            Aim.TeamCheck          = b(data.Aim_TeamCheck,     Aim.TeamCheck)
+            Aim.Deadzone           = b(data.Aim_Deadzone,      Aim.Deadzone)
+            Aim.VisibleCheck       = b(data.Aim_VisibleCheck,  Aim.VisibleCheck)
+            Aim.Prediction         = b(data.Aim_Prediction,    Aim.Prediction)
+            Aim.PredictionStrength = b(data.Aim_PredStrength,  Aim.PredictionStrength)
+            Visuals.Fullbright     = b(data.Vis_Fullbright,    Visuals.Fullbright)
+            Visuals.NoFog          = b(data.Vis_NoFog,         Visuals.NoFog)
+            Visuals.BulletTracers  = b(data.Vis_BulletTracers, Visuals.BulletTracers)
+            print("[Config] Wczytano z " .. CONFIG_FILE)
         end
     end
 end
 
 LoadConfig()
 
--- GUI System
-local GUI = { Visible = false, X = 100, Y = 100, W = 280, H = 320, Dragging = false, DragOffset = Vector2.new() }
-local COL = { BG=Color3.fromRGB(15,15,25), Panel=Color3.fromRGB(25,25,40), Accent=Color3.fromRGB(100,100,255), Text=Color3.new(1,1,1), Sub=Color3.fromRGB(160,160,180), Slider=Color3.fromRGB(60,60,100) }
+-- ─── Drawing helpers ──────────────────────────────────────────────────────────
+local function mkRect(z) local r = Drawing.new("Square") r.Filled=true r.Visible=false r.ZIndex=z return r end
+local function mkText(s,z) local t = Drawing.new("Text") t.Size=s t.Font=Drawing.Fonts.UI t.Visible=false t.ZIndex=z return t end
+local function mkLine(z) local l = Drawing.new("Line") l.Visible=false l.ZIndex=z return l end
 
-local function mkRect(z) local r=Drawing.new("Square") r.Filled=true r.Visible=false r.ZIndex=z return r end
-local function mkText(s,z) local t=Drawing.new("Text") t.Size=s t.Font=Drawing.Fonts.UI t.Visible=false t.ZIndex=z return t end
-local function mkLine(z) local l=Drawing.new("Line") l.Visible=false l.ZIndex=z return l end
+-- ─── GUI state ────────────────────────────────────────────────────────────────
+local GUI = { Visible=false, X=120, Y=80, W=295, H=340, Dragging=false, DragOffset=Vector2.new() }
+local COL = {
+    BG     = Color3.fromRGB(12,12,22),
+    Panel  = Color3.fromRGB(25,25,42),
+    Accent = Color3.fromRGB(100,100,255),
+    Text   = Color3.new(1,1,1),
+    Sub    = Color3.fromRGB(155,155,180),
+    Slider = Color3.fromRGB(55,55,95),
+    Off    = Color3.fromRGB(70,70,80),
+    Danger = Color3.fromRGB(200,50,50),
+}
 
-local dBG = mkRect(10) local dTitle = mkText(16,12) local dClose = mkText(18,12) local dSep = mkLine(11)
-local dToggle1BG = mkRect(11) local dToggle1 = mkRect(12) local dToggle1Lbl = mkText(13,12)
-local dToggle2BG = mkRect(11) local dToggle2 = mkRect(12) local dToggle2Lbl = mkText(13,12)
-local dSlider1Track = mkRect(11) local dSlider1Fill = mkRect(12) local dSlider1Lbl = mkText(13,12) local dSlider1Val = mkText(13,12)
-local dSlider2Track = mkRect(11) local dSlider2Fill = mkRect(12) local dSlider2Lbl = mkText(13,12) local dSlider2Val = mkText(13,12)
-local dPartLbl = mkText(13,12) local dPartBtn = mkRect(11) local dPartBtnLbl = mkText(13,12)
+-- ─── Drawing objects ──────────────────────────────────────────────────────────
+local dBG       = mkRect(10)
+local dTitle    = mkText(15,12)
+local dClose    = mkText(18,12)
+local dSep1     = mkLine(11)
 
-local SLIDER_W = 180
+-- Toggles
+local t1BG,t1,t1L = mkRect(11),mkRect(12),mkText(13,12)  -- Aimbot
+local t2BG,t2,t2L = mkRect(11),mkRect(12),mkText(13,12)  -- FOV Circle
+local t3BG,t3,t3L = mkRect(11),mkRect(12),mkText(13,12)  -- Prediction
+local t4BG,t4,t4L = mkRect(11),mkRect(12),mkText(13,12)  -- Bullet Tracers
+
+local dSep2 = mkLine(11)
+
+-- Sliders
+local s1T,s1F,s1L,s1V = mkRect(11),mkRect(12),mkText(13,12),mkText(13,12) -- Smoothness
+local s2T,s2F,s2L,s2V = mkRect(11),mkRect(12),mkText(13,12),mkText(13,12) -- FOV Radius
+local s3T,s3F,s3L,s3V = mkRect(11),mkRect(12),mkText(13,12),mkText(13,12) -- Pred. Strength
+
+local dSep3     = mkLine(11)
+
+-- Aim Part
+local dPartLbl  = mkText(13,12)
+local dPartBtn  = mkRect(11)
+local dPartBtnL = mkText(13,12)
+
+-- Unload button
+local dUnloadBtn = mkRect(11)
+local dUnloadLbl = mkText(13,12)
+
+local SLIDER_W = 175
 local SLIDER_H = 8
 local sliderActive = nil
 
-local function setAll(vis)
-    for _,d in pairs({dBG,dTitle,dClose,dSep,dToggle1BG,dToggle1,dToggle1Lbl,dToggle2BG,dToggle2,dToggle2Lbl,dSlider1Track,dSlider1Fill,dSlider1Lbl,dSlider1Val,dSlider2Track,dSlider2Fill,dSlider2Lbl,dSlider2Val,dPartLbl,dPartBtn,dPartBtnLbl}) do d.Visible=vis end
+local ALL = {
+    dBG,dTitle,dClose,dSep1,dSep2,dSep3,
+    t1BG,t1,t1L, t2BG,t2,t2L, t3BG,t3,t3L, t4BG,t4,t4L,
+    s1T,s1F,s1L,s1V, s2T,s2F,s2L,s2V, s3T,s3F,s3L,s3V,
+    dPartLbl,dPartBtn,dPartBtnL,
+    dUnloadBtn,dUnloadLbl,
+}
+
+local function setAll(v) for _,d in pairs(ALL) do d.Visible=v end end
+
+-- ─── Layout constants (Y offsets from GUI.Y) ──────────────────────────────────
+-- Header:     0–34
+-- Toggle 1:  46
+-- Toggle 2:  70
+-- Toggle 3:  94
+-- Toggle 4: 118
+-- Sep2:     141
+-- Slider 1 label: 149  track: 162
+-- Slider 2 label: 182  track: 195
+-- Slider 3 label: 215  track: 228
+-- Sep3:     249
+-- AimPart:  257
+-- Unload:   280
+-- Bottom:   310 → H=320
+
+local function drawToggle(bg,fill,lbl, yOff, label, state)
+    local tw,th = 32,16
+    local x,w = GUI.X, GUI.W
+    bg.Position   = Vector2.new(x+w-tw-12, GUI.Y+yOff) bg.Size = Vector2.new(tw,th)
+    bg.Color      = COL.Slider bg.Visible = true
+    fill.Position = Vector2.new(x+w-tw-12+(state and tw-th or 0), GUI.Y+yOff)
+    fill.Size     = Vector2.new(th,th)
+    fill.Color    = state and COL.Accent or COL.Off fill.Visible = true
+    lbl.Position  = Vector2.new(x+12, GUI.Y+yOff) lbl.Text = label lbl.Color = COL.Text lbl.Visible = true
+end
+
+local function drawSlider(track,fill,lbl,val, yOff, label, pct, valStr)
+    local x = GUI.X
+    lbl.Position   = Vector2.new(x+12, GUI.Y+yOff)       lbl.Text = label   lbl.Color = COL.Sub   lbl.Visible = true
+    track.Position = Vector2.new(x+12, GUI.Y+yOff+13)    track.Size = Vector2.new(SLIDER_W,SLIDER_H) track.Color = COL.Slider track.Visible = true
+    fill.Position  = Vector2.new(x+12, GUI.Y+yOff+13)    fill.Size  = Vector2.new(math.max(4,SLIDER_W*pct),SLIDER_H) fill.Color = COL.Accent fill.Visible = true
+    val.Position   = Vector2.new(x+12+SLIDER_W+6, GUI.Y+yOff+9) val.Text = valStr val.Color = COL.Text val.Visible = true
 end
 
 local function updateGUI()
     if not GUI.Visible then setAll(false) return end
-    local x,y,w,h = GUI.X, GUI.Y, GUI.W, GUI.H
+    local x,y,w,h = GUI.X,GUI.Y,GUI.W,GUI.H
 
-    dBG.Position=Vector2.new(x,y) dBG.Size=Vector2.new(w,h) dBG.Color=COL.BG dBG.Transparency=0.8 dBG.Visible=true
-    dTitle.Position=Vector2.new(x+12,y+10) dTitle.Text="🎯 Aimbot GUI" dTitle.Color=COL.Accent dTitle.Visible=true
+    -- Background
+    dBG.Position=Vector2.new(x,y) dBG.Size=Vector2.new(w,h) dBG.Color=COL.BG dBG.Transparency=0.82 dBG.Visible=true
+    -- Title
+    dTitle.Position=Vector2.new(x+12,y+10) dTitle.Text="🎯 ScoutCheat  |  K=Menu  L=Save  J=Load" dTitle.Color=COL.Accent dTitle.Visible=true
+    -- Close X
     dClose.Position=Vector2.new(x+w-22,y+8) dClose.Text="✕" dClose.Color=Color3.fromRGB(255,80,80) dClose.Visible=true
-    dSep.From=Vector2.new(x+8,y+34) dSep.To=Vector2.new(x+w-8,y+34) dSep.Color=COL.Accent dSep.Thickness=1 dSep.Visible=true
+    -- Sep 1
+    dSep1.From=Vector2.new(x+8,y+34) dSep1.To=Vector2.new(x+w-8,y+34) dSep1.Color=COL.Accent dSep1.Thickness=1 dSep1.Visible=true
 
-    local function drawToggle(bg,fill,lbl,yOff,label,state)
-        local tw,th = 32,16
-        bg.Position=Vector2.new(x+w-tw-12,y+yOff) bg.Size=Vector2.new(tw,th) bg.Color=COL.Slider bg.Visible=true
-        fill.Position=Vector2.new(x+w-tw-12+(state and tw-th or 0),y+yOff) fill.Size=Vector2.new(th,th) fill.Color=state and COL.Accent or Color3.fromRGB(80,80,80) fill.Visible=true
-        lbl.Position=Vector2.new(x+12,y+yOff) lbl.Text=label lbl.Color=COL.Text lbl.Visible=true
-    end
+    -- Toggles
+    drawToggle(t1BG,t1,t1L,  46, "Aimbot Enabled",   Aim.Enabled)
+    drawToggle(t2BG,t2,t2L,  70, "FOV Circle",        Aim.FOV_Enabled)
+    drawToggle(t3BG,t3,t3L,  94, "Prediction (1v1)",  Aim.Prediction)
+    drawToggle(t4BG,t4,t4L, 118, "Bullet Tracers",    Visuals.BulletTracers)
 
-    drawToggle(dToggle1BG,dToggle1,dToggle1Lbl,46,"Aimbot Enabled",Aim.Enabled)
-    drawToggle(dToggle2BG,dToggle2,dToggle2Lbl,72,"Show FOV Circle",Aim.FOV_Enabled)
+    -- Sep 2
+    dSep2.From=Vector2.new(x+8,y+141) dSep2.To=Vector2.new(x+w-8,y+141) dSep2.Color=COL.Slider dSep2.Thickness=1 dSep2.Visible=true
 
+    -- Sliders
     local s1pct = (Aim.Smoothness-0.01)/(0.3-0.01)
-    dSlider1Lbl.Position=Vector2.new(x+12,y+100) dSlider1Lbl.Text="Legit Smoothness" dSlider1Lbl.Color=COL.Sub dSlider1Lbl.Visible=true
-    dSlider1Track.Position=Vector2.new(x+12,y+114) dSlider1Track.Size=Vector2.new(SLIDER_W,SLIDER_H) dSlider1Track.Color=COL.Slider dSlider1Track.Visible=true
-    dSlider1Fill.Position=Vector2.new(x+12,y+114) dSlider1Fill.Size=Vector2.new(math.max(4,SLIDER_W*s1pct),SLIDER_H) dSlider1Fill.Color=COL.Accent dSlider1Fill.Visible=true
-    dSlider1Val.Position=Vector2.new(x+12+SLIDER_W+6,y+110) dSlider1Val.Text=tostring(math.floor(Aim.Smoothness*100)/100) dSlider1Val.Color=COL.Text dSlider1Val.Visible=true
+    drawSlider(s1T,s1F,s1L,s1V, 149, "Legit Smoothness", s1pct, tostring(math.floor(Aim.Smoothness*100)/100))
 
     local s2pct = (Aim.FOV_Radius-20)/(300-20)
-    dSlider2Lbl.Position=Vector2.new(x+12,y+140) dSlider2Lbl.Text="FOV Radius" dSlider2Lbl.Color=COL.Sub dSlider2Lbl.Visible=true
-    dSlider2Track.Position=Vector2.new(x+12,y+154) dSlider2Track.Size=Vector2.new(SLIDER_W,SLIDER_H) dSlider2Track.Color=COL.Slider dSlider2Track.Visible=true
-    dSlider2Fill.Position=Vector2.new(x+12,y+154) dSlider2Fill.Size=Vector2.new(math.max(4,SLIDER_W*s2pct),SLIDER_H) dSlider2Fill.Color=COL.Accent dSlider2Fill.Visible=true
-    dSlider2Val.Position=Vector2.new(x+12+SLIDER_W+6,y+150) dSlider2Val.Text=tostring(math.floor(Aim.FOV_Radius)) dSlider2Val.Color=COL.Text dSlider2Val.Visible=true
+    drawSlider(s2T,s2F,s2L,s2V, 182, "FOV Radius", s2pct, tostring(math.floor(Aim.FOV_Radius)))
 
-    dPartLbl.Position=Vector2.new(x+12,y+190) dPartLbl.Text="Aim Part:" dPartLbl.Color=COL.Sub dPartLbl.Visible=true
-    dPartBtn.Position=Vector2.new(x+70,y+188) dPartBtn.Size=Vector2.new(100,18) dPartBtn.Color=COL.Panel dPartBtn.Visible=true
-    dPartBtnLbl.Position=Vector2.new(x+75,y+190) dPartBtnLbl.Text=Aim.AimPart dPartBtnLbl.Color=COL.Accent dPartBtnLbl.Visible=true
+    local s3pct = (Aim.PredictionStrength-0.02)/(0.40-0.02)
+    drawSlider(s3T,s3F,s3L,s3V, 215, "Prediction Siła", s3pct, tostring(math.floor(Aim.PredictionStrength*1000)/1000))
+
+    -- Sep 3
+    dSep3.From=Vector2.new(x+8,y+249) dSep3.To=Vector2.new(x+w-8,y+249) dSep3.Color=COL.Slider dSep3.Thickness=1 dSep3.Visible=true
+
+    -- Aim Part
+    dPartLbl.Position=Vector2.new(x+12,y+257) dPartLbl.Text="Aim Part:" dPartLbl.Color=COL.Sub dPartLbl.Visible=true
+    dPartBtn.Position=Vector2.new(x+82,y+255) dPartBtn.Size=Vector2.new(110,18) dPartBtn.Color=COL.Panel dPartBtn.Visible=true
+    dPartBtnL.Position=Vector2.new(x+87,y+257) dPartBtnL.Text=Aim.AimPart dPartBtnL.Color=COL.Accent dPartBtnL.Visible=true
+
+    -- Unload button
+    dUnloadBtn.Position=Vector2.new(x+12,y+282) dUnloadBtn.Size=Vector2.new(w-24,22)
+    dUnloadBtn.Color=COL.Danger dUnloadBtn.Transparency=0.35 dUnloadBtn.Visible=true
+    dUnloadLbl.Position=Vector2.new(x+w/2-50,y+286) dUnloadLbl.Text="⏏  UNLOAD  (lub DELETE)" dUnloadLbl.Color=COL.Text dUnloadLbl.Visible=true
 end
 
-local function inBox(mx,my, bx,by,bw,bh) return mx>=bx and mx<=bx+bw and my>=by and my<=by+bh end
+-- ─── Input ────────────────────────────────────────────────────────────────────
+local function inBox(mx,my,bx,by,bw,bh) return mx>=bx and mx<=bx+bw and my>=by and my<=by+bh end
 
 UserInputService.InputBegan:Connect(function(input, gpe)
     if gpe then return end
-    if input.KeyCode == Enum.KeyCode.K then GUI.Visible = not GUI.Visible updateGUI() return end
-    if input.KeyCode == Enum.KeyCode.L then SaveConfig() end
-    if input.KeyCode == Enum.KeyCode.J then LoadConfig() updateGUI() end
-
+    -- Hotkeys
+    if input.KeyCode == Enum.KeyCode.K     then GUI.Visible=not GUI.Visible updateGUI() return end
+    if input.KeyCode == Enum.KeyCode.L     then SaveConfig() return end
+    if input.KeyCode == Enum.KeyCode.J     then LoadConfig() updateGUI() return end
+    if input.KeyCode == Enum.KeyCode.Delete then
+        if getgenv().ScoutUnload then getgenv().ScoutUnload() end
+        GUI.Visible=false setAll(false) return
+    end
     if not GUI.Visible then return end
+
     local ml = UserInputService:GetMouseLocation()
     local mx,my = ml.X, ml.Y
     local x,y,w = GUI.X,GUI.Y,GUI.W
 
     if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        -- Close
         if inBox(mx,my, x+w-22,y+8, 16,16) then GUI.Visible=false setAll(false) return end
+        -- Drag header
         if inBox(mx,my, x,y, w,34) then GUI.Dragging=true GUI.DragOffset=Vector2.new(mx-x,my-y) return end
-        if inBox(mx,my, x+w-44,y+46, 32,16) then Aim.Enabled=not Aim.Enabled updateGUI() end
-        if inBox(mx,my, x+w-44,y+72, 32,16) then Aim.FOV_Enabled=not Aim.FOV_Enabled updateGUI() end
-        if inBox(mx,my, x+70,y+188, 100,18) then 
-            local p={"Head","HumanoidRootPart","UpperTorso"} Aim.AimPart=p[(table.find(p,Aim.AimPart) or 1)%3+1] updateGUI() 
+
+        -- Toggles (click anywhere on the row)
+        if inBox(mx,my, x,y+46,  w,20) then Aim.Enabled          = not Aim.Enabled          updateGUI() end
+        if inBox(mx,my, x,y+70,  w,20) then Aim.FOV_Enabled       = not Aim.FOV_Enabled       updateGUI() end
+        if inBox(mx,my, x,y+94,  w,20) then Aim.Prediction        = not Aim.Prediction        updateGUI() end
+        if inBox(mx,my, x,y+118, w,20) then Visuals.BulletTracers = not Visuals.BulletTracers updateGUI() end
+
+        -- Slider hit areas (label + track region)
+        if inBox(mx,my, x+12,y+149, SLIDER_W,30) then sliderActive=1 end
+        if inBox(mx,my, x+12,y+182, SLIDER_W,30) then sliderActive=2 end
+        if inBox(mx,my, x+12,y+215, SLIDER_W,30) then sliderActive=3 end
+
+        -- Aim Part cycle
+        if inBox(mx,my, x+82,y+255, 110,18) then
+            local p={"Head","HumanoidRootPart","UpperTorso"}
+            Aim.AimPart=p[(table.find(p,Aim.AimPart) or 1)%3+1] updateGUI()
         end
-        if inBox(mx,my, x+12,y+110, SLIDER_W,20) then sliderActive=1 end
-        if inBox(mx,my, x+12,y+150, SLIDER_W,20) then sliderActive=2 end
+
+        -- Unload button
+        if inBox(mx,my, x+12,y+282, w-24,22) then
+            if getgenv().ScoutUnload then getgenv().ScoutUnload() end
+            GUI.Visible=false setAll(false)
+        end
     end
 end)
 
 UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType==Enum.UserInputType.MouseButton1 then GUI.Dragging=false sliderActive=nil end
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        GUI.Dragging=false sliderActive=nil
+    end
 end)
 
 RunService.RenderStepped:Connect(function()
     local ml = UserInputService:GetMouseLocation()
-    if GUI.Dragging then GUI.X=ml.X-GUI.DragOffset.X GUI.Y=ml.Y-GUI.DragOffset.Y updateGUI() end
+    if GUI.Dragging then
+        GUI.X=ml.X-GUI.DragOffset.X GUI.Y=ml.Y-GUI.DragOffset.Y updateGUI()
+    end
     if sliderActive then
-        local pct = math.clamp((ml.X-(GUI.X+12))/SLIDER_W,0,1)
-        if sliderActive==1 then Aim.Smoothness=math.floor((0.01+pct*(0.3-0.01))*100)/100
-        elseif sliderActive==2 then Aim.FOV_Radius=math.floor(20+pct*(300-20)) end
+        local pct = math.clamp((ml.X-(GUI.X+12))/SLIDER_W, 0, 1)
+        if     sliderActive==1 then Aim.Smoothness         = math.floor((0.01+pct*(0.3-0.01))*100)/100
+        elseif sliderActive==2 then Aim.FOV_Radius         = math.floor(20+pct*(300-20))
+        elseif sliderActive==3 then Aim.PredictionStrength = math.floor((0.02+pct*(0.40-0.02))*1000)/1000
+        end
         updateGUI()
     end
 end)

@@ -6,9 +6,20 @@ local Visuals = _G.ScoutCheat.Config.Visuals
 
 local origBrightness   = Lighting.Brightness
 local origAmbient      = Lighting.Ambient
+local origOutdoorAmb   = Lighting.OutdoorAmbient
 local origFogEnd       = Lighting.FogEnd
 local origFogStart     = Lighting.FogStart
 local origFogColor     = Lighting.FogColor
+
+-- Zapisz oryginalne wartości globalnie (używa Unload.lua)
+getgenv()._origLighting = {
+    Brightness      = origBrightness,
+    Ambient         = origAmbient,
+    OutdoorAmbient  = origOutdoorAmb,
+    FogEnd          = origFogEnd,
+    FogStart        = origFogStart,
+    FogColor        = origFogColor,
+}
 
 local rainbowHue = 0
 

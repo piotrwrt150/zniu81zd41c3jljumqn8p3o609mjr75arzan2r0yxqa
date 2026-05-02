@@ -18,7 +18,17 @@ loadstring(game:HttpGet(repoURL .. "Aimbot.lua"))()
 print("[ScoutCheat] Ładowanie Visuals.lua...")
 loadstring(game:HttpGet(repoURL .. "Visuals.lua"))()
 
+print("[ScoutCheat] Ładowanie Tracers.lua...")
+loadstring(game:HttpGet(repoURL .. "Tracers.lua"))()
+
 print("[ScoutCheat] Ładowanie GUI.lua...")
 loadstring(game:HttpGet(repoURL .. "GUI.lua"))()
 
-print("[ScoutCheat] Załadowano pomyślnie! Klawisz K - Menu, L - Zapis configu, J - Wczytanie configu")
+print("[ScoutCheat] Ładowanie Unload.lua...")
+loadstring(game:HttpGet(repoURL .. "Unload.lua"))()
+
+print("[ScoutCheat] ✔ Załadowano pomyślnie!")
+print("  K        – Menu (Aimbot GUI)")
+print("  L        – Zapisz config")
+print("  J        – Wczytaj config")
+print("  DELETE   – Unload (wyłącz wszystko)")

@@ -33,12 +33,20 @@ local Config = {
         FOV_Color = Color3.fromRGB(255,255,255),
         FOV_Thickness = 1,
         FOV_Transparency = 0.8,
-        VisibleCheck = true
+        VisibleCheck = true,
+        -- Prediction
+        Prediction = true,
+        PredictionStrength = 0.14, -- sekundy w przód (im wyższy ping, tym większa wartość)
     },
     Visuals = {
         Fullbright = false,
         NoFog = false,
         RainbowChams = false,
+        -- Bullet Tracers
+        BulletTracers = true,
+        BulletTracerColor = Color3.fromRGB(255, 80, 80),
+        BulletTracerThickness = 1.5,
+        BulletTracerFadeTime = 0.45, -- sekundy zanim linia zniknie
     }
 }
 return Config
