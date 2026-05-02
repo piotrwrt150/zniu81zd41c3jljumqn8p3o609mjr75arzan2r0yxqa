@@ -48,7 +48,7 @@ local function CreateESP(plr)
             if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
                 local HRP = plr.Character.HumanoidRootPart
                 local Hum = plr.Character:FindFirstChild("Humanoid")
-                if not Hum then return Hide() end
+                if not Hum or Hum.Health <= 0 then return Hide() end
                 local Pos, OnScreen = Cam:WorldToScreenPoint(HRP.Position)
                 local Dist = (Cam.CFrame.Position - HRP.Position).Magnitude / 3.57
                 if OnScreen and Dist <= ESP.MaxDistance then
