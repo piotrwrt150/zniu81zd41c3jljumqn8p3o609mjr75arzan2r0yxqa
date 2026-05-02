@@ -1,6 +1,6 @@
 -- Tracers.lua
--- Rysuje linie od lufy broni do miejsca trafienia po każdym strzale.
--- Linie znikają po BulletTracerFadeTime sekundach (fade out).
+-- Rysuje linie od lufy broni do miejsca trafienia po strzale z broni.
+-- Linie znikają po czasie (fade out).
 
 local Players      = game:GetService("Players")
 local RunService   = game:GetService("RunService")
@@ -8,11 +8,11 @@ local Workspace    = game:GetService("Workspace")
 
 local lplayer  = Players.LocalPlayer
 local camera   = Workspace.CurrentCamera
+local mouse    = lplayer:GetMouse()
 local Visuals  = _G.ScoutCheat.Config.Visuals
 
--- Pula aktywnych linii: { line, spawnedAt, startPos, endPos }
+-- Pula aktywnych linii: { line, spawnedAt, from, to }
 local activeTracers = {}
-local toolConns     = {}
 local function reg(c) table.insert(getgenv().ScoutCheat._connections, c) return c end
 
 local function screenPoint(worldPos)
@@ -20,8 +20,6 @@ local function screenPoint(worldPos)
     return Vector2.new(p.X, p.Y), onScreen, p.Z
 end
 
--- Tworzy jedną linię tracera (nie Drawing.Line – zamiast tego Square hack nie jest potrzebny;
--- używamy Drawing.Line bezpośrednio).
 local function spawnTracer(from, to)
     if not Visuals.BulletTracers then return end
     local line = Drawing.new("Line")
@@ -41,79 +39,81 @@ end
 -- Szuka lufy / tip narzędzia
 local function getBarrelPos(tool)
     local barrel = tool:FindFirstChild("Handle")
-        and (tool.Handle:FindFirstChild("Tip") or tool.Handle:FindFirstChild("Barrel"))
-    if barrel then return barrel.WorldPosition end
-    -- fallback: środek kamery
+        and (tool.Handle:FindFirstChild("Tip") or tool.Handle:FindFirstChild("Barrel") or tool.Handle:FindFirstChild("Muzzle") or tool.Handle)
+    if barrel and barrel:IsA("BasePart") then return barrel.Position end
+    -- fallback: głowa lub kamera
+    local char = lplayer.Character
+    if char and char:FindFirstChild("Head") then return char.Head.Position end
     return camera.CFrame.Position
 end
 
--- Podłącza listener do każdego narzędzia postaci gracza
-local function hookCharacter(char)
-    if not char then return end
+-- Logika podłączania do narzędzi w ekwipunku gracza
+local toolConns = {}
 
-    char.ChildAdded:Connect(function(child)
-        -- czekaj aż narzędzie będzie kompletne
-        if not child:IsA("Tool") then return end
-        local tool = child
+local function hookTool(tool)
+    if not tool:IsA("Tool") then return end
+    -- Jeśli już podpięliśmy, pomiń
+    for _, conn in ipairs(toolConns) do
+        if conn.tool == tool then return end
+    end
 
-        -- Szukamy zdalnego zdarzenia "Fire", "Shoot", "OnFired" itp.
-        local function tryConnect(remote)
-            if remote:IsA("RemoteEvent") or remote:IsA("BindableEvent") then
-                local conn = remote.OnClientEvent:Connect(function()
-                    -- Raycast w kierunku, w którym patrzy kamera
-                    local origin    = camera.CFrame.Position
-                    local direction = camera.CFrame.LookVector * 1000
-                    local params    = RaycastParams.new()
-                    params.FilterDescendantsInstances = {char, lplayer.Character}
-                    params.FilterType = Enum.RaycastFilterType.Exclude
-                    local result = Workspace:Raycast(origin, direction, params)
-                    local hitPos = result and result.Position or (origin + direction)
-                    local barrelPos = getBarrelPos(tool)
-                    spawnTracer(barrelPos, hitPos)
-                end)
-                table.insert(toolConns, conn)
-            end
-        end
+    local conn = tool.Activated:Connect(function()
+        if not Visuals.BulletTracers then return end
+        
+        -- W typowych grach celujemy tam, gdzie myszka
+        local origin = camera.CFrame.Position
+        local target = mouse.Hit.Position
+        local direction = (target - origin).Unit * 1000
 
-        -- Próbuj podpiąć pod istniejące eventy
-        for _, desc in ipairs(tool:GetDescendants()) do tryConnect(desc) end
-        tool.DescendantAdded:Connect(tryConnect)
+        local params = RaycastParams.new()
+        params.FilterDescendantsInstances = {lplayer.Character}
+        params.FilterType = Enum.RaycastFilterType.Exclude
 
-        -- Fallback: wykrywaj strzał przez animacje (ChildAdded "BulletImpact", Part itp.)
-        -- oraz przez UserInputService (MouseButton1) jako uniwersalny trigger
+        local result = Workspace:Raycast(origin, direction, params)
+        local hitPos = result and result.Position or (origin + direction)
+        local barrelPos = getBarrelPos(tool)
+        
+        spawnTracer(barrelPos, hitPos)
     end)
+    
+    table.insert(toolConns, {tool = tool, conn = reg(conn)})
 end
 
--- InputService fallback: strzelaj tracer gdy LMB kliknięty i gracz ma broń
-local UIS = game:GetService("UserInputService")
-reg(UIS.InputBegan:Connect(function(input, gpe)
-    if gpe then return end
-    if input.UserInputType ~= Enum.UserInputType.MouseButton1 then return end
-    local char = lplayer.Character
+local function hookCharacter(char)
     if not char then return end
-    local tool = char:FindFirstChildOfClass("Tool")
-    if not tool then return end
+    -- Podepnij już istniejące
+    for _, child in ipairs(char:GetChildren()) do hookTool(child) end
+    -- Podepnij te które zostaną wyciągnięte (dodane do postaci)
+    reg(char.ChildAdded:Connect(hookTool))
+end
 
-    local origin    = camera.CFrame.Position
-    local direction = camera.CFrame.LookVector * 1000
-    local params    = RaycastParams.new()
-    params.FilterDescendantsInstances = {char}
-    params.FilterType = Enum.RaycastFilterType.Exclude
-    local result = Workspace:Raycast(origin, direction, params)
-    local hitPos = result and result.Position or (origin + direction)
-    local barrelPos = getBarrelPos(tool)
-    spawnTracer(barrelPos, hitPos)
-end))
+-- Podepnij od razu też w plecaku gracza
+local function hookBackpack(backpack)
+    for _, child in ipairs(backpack:GetChildren()) do hookTool(child) end
+    reg(backpack.ChildAdded:Connect(hookTool))
+end
 
--- Podłącz do aktualnej postaci i jej zmian
 local function initPlayer()
     if lplayer.Character then hookCharacter(lplayer.Character) end
-    lplayer.CharacterAdded:Connect(hookCharacter)
+    reg(lplayer.CharacterAdded:Connect(hookCharacter))
+    
+    local backpack = lplayer:FindFirstChild("Backpack")
+    if backpack then hookBackpack(backpack) end
+    reg(lplayer.ChildAdded:Connect(function(child)
+        if child:IsA("Backpack") then hookBackpack(child) end
+    end))
 end
 initPlayer()
 
 -- RenderStepped: animuj fade linii
 reg(RunService.RenderStepped:Connect(function()
+    if not Visuals.BulletTracers then
+        -- Natychmiast usuń wszystkie aktywne tracery po wyłączeniu w configu
+        for _, t in ipairs(activeTracers) do pcall(function() t.line:Remove() end) end
+        activeTracers = {}
+        return
+    end
+
     local now   = tick()
     local alive = {}
     for _, t in ipairs(activeTracers) do
@@ -129,7 +129,7 @@ reg(RunService.RenderStepped:Connect(function()
                 t.line.From         = sp
                 t.line.To           = ep
                 t.line.Transparency = alpha
-                t.line.Visible      = Visuals.BulletTracers
+                t.line.Visible      = true
             else
                 t.line.Visible = false
             end
@@ -138,4 +138,10 @@ reg(RunService.RenderStepped:Connect(function()
     end
     activeTracers = alive
 end))
+
+-- Czyszczenie przy unloadzie (Unload.lua po prostu je :Remove())
+getgenv().ScoutCheat._cleanupTracers = function()
+    for _, t in ipairs(activeTracers) do pcall(function() t.line:Remove() end) end
+end
+
 

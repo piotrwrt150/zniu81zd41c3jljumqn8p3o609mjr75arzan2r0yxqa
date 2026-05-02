@@ -18,8 +18,6 @@ local function SaveConfig()
         Aim_TeamCheck      = Aim.TeamCheck,
         Aim_Deadzone       = Aim.Deadzone,
         Aim_VisibleCheck   = Aim.VisibleCheck,
-        Aim_Prediction     = Aim.Prediction,
-        Aim_PredStrength   = Aim.PredictionStrength,
         Vis_Fullbright     = Visuals.Fullbright,
         Vis_NoFog          = Visuals.NoFog,
         Vis_BulletTracers  = Visuals.BulletTracers,
@@ -45,8 +43,6 @@ local function LoadConfig()
             Aim.TeamCheck          = b(data.Aim_TeamCheck,     Aim.TeamCheck)
             Aim.Deadzone           = b(data.Aim_Deadzone,      Aim.Deadzone)
             Aim.VisibleCheck       = b(data.Aim_VisibleCheck,  Aim.VisibleCheck)
-            Aim.Prediction         = b(data.Aim_Prediction,    Aim.Prediction)
-            Aim.PredictionStrength = b(data.Aim_PredStrength,  Aim.PredictionStrength)
             Visuals.Fullbright     = b(data.Vis_Fullbright,    Visuals.Fullbright)
             Visuals.NoFog          = b(data.Vis_NoFog,         Visuals.NoFog)
             Visuals.BulletTracers  = b(data.Vis_BulletTracers, Visuals.BulletTracers)
@@ -87,15 +83,13 @@ local dSep1     = mkLine(11)
 -- Toggles
 local t1BG,t1,t1L = mkRect(11),mkRect(12),mkText(13,12)  -- Aimbot
 local t2BG,t2,t2L = mkRect(11),mkRect(12),mkText(13,12)  -- FOV Circle
-local t3BG,t3,t3L = mkRect(11),mkRect(12),mkText(13,12)  -- Prediction
-local t4BG,t4,t4L = mkRect(11),mkRect(12),mkText(13,12)  -- Bullet Tracers
+local t3BG,t3,t3L = mkRect(11),mkRect(12),mkText(13,12)  -- Bullet Tracers
 
 local dSep2 = mkLine(11)
 
 -- Sliders
 local s1T,s1F,s1L,s1V = mkRect(11),mkRect(12),mkText(13,12),mkText(13,12) -- Smoothness
 local s2T,s2F,s2L,s2V = mkRect(11),mkRect(12),mkText(13,12),mkText(13,12) -- FOV Radius
-local s3T,s3F,s3L,s3V = mkRect(11),mkRect(12),mkText(13,12),mkText(13,12) -- Pred. Strength
 
 local dSep3     = mkLine(11)
 
@@ -114,8 +108,8 @@ local sliderActive = nil
 
 local ALL = {
     dBG,dTitle,dClose,dSep1,dSep2,dSep3,
-    t1BG,t1,t1L, t2BG,t2,t2L, t3BG,t3,t3L, t4BG,t4,t4L,
-    s1T,s1F,s1L,s1V, s2T,s2F,s2L,s2V, s3T,s3F,s3L,s3V,
+    t1BG,t1,t1L, t2BG,t2,t2L, t3BG,t3,t3L,
+    s1T,s1F,s1L,s1V, s2T,s2F,s2L,s2V,
     dPartLbl,dPartBtn,dPartBtnL,
     dUnloadBtn,dUnloadLbl,
 }
@@ -127,15 +121,13 @@ local function setAll(v) for _,d in pairs(ALL) do d.Visible=v end end
 -- Toggle 1:  46
 -- Toggle 2:  70
 -- Toggle 3:  94
--- Toggle 4: 118
--- Sep2:     141
--- Slider 1 label: 149  track: 162
--- Slider 2 label: 182  track: 195
--- Slider 3 label: 215  track: 228
--- Sep3:     249
--- AimPart:  257
--- Unload:   280
--- Bottom:   310 → H=320
+-- Sep2:     118
+-- Slider 1 label: 126  track: 139
+-- Slider 2 label: 159  track: 172
+-- Sep3:     194
+-- AimPart:  202
+-- Unload:   225
+-- Bottom:   255 → H=265
 
 local function drawToggle(bg,fill,lbl, yOff, label, state)
     local tw,th = 32,16
@@ -158,7 +150,7 @@ end
 
 local function updateGUI()
     if not GUI.Visible then setAll(false) return end
-    local x,y,w,h = GUI.X,GUI.Y,GUI.W,GUI.H
+    local x,y,w,h = GUI.X,GUI.Y,GUI.W,265
 
     -- Background
     dBG.Position=Vector2.new(x,y) dBG.Size=Vector2.new(w,h) dBG.Color=COL.BG dBG.Transparency=0.82 dBG.Visible=true
@@ -172,34 +164,30 @@ local function updateGUI()
     -- Toggles
     drawToggle(t1BG,t1,t1L,  46, "Aimbot Enabled",   Aim.Enabled)
     drawToggle(t2BG,t2,t2L,  70, "FOV Circle",        Aim.FOV_Enabled)
-    drawToggle(t3BG,t3,t3L,  94, "Prediction (1v1)",  Aim.Prediction)
-    drawToggle(t4BG,t4,t4L, 118, "Bullet Tracers",    Visuals.BulletTracers)
+    drawToggle(t3BG,t3,t3L,  94, "Bullet Tracers",    Visuals.BulletTracers)
 
     -- Sep 2
-    dSep2.From=Vector2.new(x+8,y+141) dSep2.To=Vector2.new(x+w-8,y+141) dSep2.Color=COL.Slider dSep2.Thickness=1 dSep2.Visible=true
+    dSep2.From=Vector2.new(x+8,y+118) dSep2.To=Vector2.new(x+w-8,y+118) dSep2.Color=COL.Slider dSep2.Thickness=1 dSep2.Visible=true
 
     -- Sliders
     local s1pct = (Aim.Smoothness-0.01)/(0.3-0.01)
-    drawSlider(s1T,s1F,s1L,s1V, 149, "Legit Smoothness", s1pct, tostring(math.floor(Aim.Smoothness*100)/100))
+    drawSlider(s1T,s1F,s1L,s1V, 126, "Legit Smoothness", s1pct, tostring(math.floor(Aim.Smoothness*100)/100))
 
     local s2pct = (Aim.FOV_Radius-20)/(300-20)
-    drawSlider(s2T,s2F,s2L,s2V, 182, "FOV Radius", s2pct, tostring(math.floor(Aim.FOV_Radius)))
-
-    local s3pct = (Aim.PredictionStrength-0.02)/(0.40-0.02)
-    drawSlider(s3T,s3F,s3L,s3V, 215, "Prediction Siła", s3pct, tostring(math.floor(Aim.PredictionStrength*1000)/1000))
+    drawSlider(s2T,s2F,s2L,s2V, 159, "FOV Radius", s2pct, tostring(math.floor(Aim.FOV_Radius)))
 
     -- Sep 3
-    dSep3.From=Vector2.new(x+8,y+249) dSep3.To=Vector2.new(x+w-8,y+249) dSep3.Color=COL.Slider dSep3.Thickness=1 dSep3.Visible=true
+    dSep3.From=Vector2.new(x+8,y+194) dSep3.To=Vector2.new(x+w-8,y+194) dSep3.Color=COL.Slider dSep3.Thickness=1 dSep3.Visible=true
 
     -- Aim Part
-    dPartLbl.Position=Vector2.new(x+12,y+257) dPartLbl.Text="Aim Part:" dPartLbl.Color=COL.Sub dPartLbl.Visible=true
-    dPartBtn.Position=Vector2.new(x+82,y+255) dPartBtn.Size=Vector2.new(110,18) dPartBtn.Color=COL.Panel dPartBtn.Visible=true
-    dPartBtnL.Position=Vector2.new(x+87,y+257) dPartBtnL.Text=Aim.AimPart dPartBtnL.Color=COL.Accent dPartBtnL.Visible=true
+    dPartLbl.Position=Vector2.new(x+12,y+202) dPartLbl.Text="Aim Part:" dPartLbl.Color=COL.Sub dPartLbl.Visible=true
+    dPartBtn.Position=Vector2.new(x+82,y+200) dPartBtn.Size=Vector2.new(110,18) dPartBtn.Color=COL.Panel dPartBtn.Visible=true
+    dPartBtnL.Position=Vector2.new(x+87,y+202) dPartBtnL.Text=Aim.AimPart dPartBtnL.Color=COL.Accent dPartBtnL.Visible=true
 
     -- Unload button
-    dUnloadBtn.Position=Vector2.new(x+12,y+282) dUnloadBtn.Size=Vector2.new(w-24,22)
+    dUnloadBtn.Position=Vector2.new(x+12,y+225) dUnloadBtn.Size=Vector2.new(w-24,22)
     dUnloadBtn.Color=COL.Danger dUnloadBtn.Transparency=0.35 dUnloadBtn.Visible=true
-    dUnloadLbl.Position=Vector2.new(x+w/2-50,y+286) dUnloadLbl.Text="⏏  UNLOAD  (lub DELETE)" dUnloadLbl.Color=COL.Text dUnloadLbl.Visible=true
+    dUnloadLbl.Position=Vector2.new(x+w/2-50,y+229) dUnloadLbl.Text="⏏  UNLOAD  (lub DELETE)" dUnloadLbl.Color=COL.Text dUnloadLbl.Visible=true
 end
 
 -- ─── Input ────────────────────────────────────────────────────────────────────
@@ -230,22 +218,20 @@ reg(UserInputService.InputBegan:Connect(function(input, gpe)
         -- Toggles (click anywhere on the row)
         if inBox(mx,my, x,y+46,  w,20) then Aim.Enabled          = not Aim.Enabled          updateGUI() end
         if inBox(mx,my, x,y+70,  w,20) then Aim.FOV_Enabled       = not Aim.FOV_Enabled       updateGUI() end
-        if inBox(mx,my, x,y+94,  w,20) then Aim.Prediction        = not Aim.Prediction        updateGUI() end
-        if inBox(mx,my, x,y+118, w,20) then Visuals.BulletTracers = not Visuals.BulletTracers updateGUI() end
+        if inBox(mx,my, x,y+94,  w,20) then Visuals.BulletTracers = not Visuals.BulletTracers updateGUI() end
 
         -- Slider hit areas (label + track region)
-        if inBox(mx,my, x+12,y+149, SLIDER_W,30) then sliderActive=1 end
-        if inBox(mx,my, x+12,y+182, SLIDER_W,30) then sliderActive=2 end
-        if inBox(mx,my, x+12,y+215, SLIDER_W,30) then sliderActive=3 end
+        if inBox(mx,my, x+12,y+126, SLIDER_W,30) then sliderActive=1 end
+        if inBox(mx,my, x+12,y+159, SLIDER_W,30) then sliderActive=2 end
 
         -- Aim Part cycle
-        if inBox(mx,my, x+82,y+255, 110,18) then
+        if inBox(mx,my, x+82,y+200, 110,18) then
             local p={"Head","HumanoidRootPart","UpperTorso"}
             Aim.AimPart=p[(table.find(p,Aim.AimPart) or 1)%3+1] updateGUI()
         end
 
         -- Unload button
-        if inBox(mx,my, x+12,y+282, w-24,22) then
+        if inBox(mx,my, x+12,y+225, w-24,22) then
             if getgenv().ScoutUnload then getgenv().ScoutUnload() end
             GUI.Visible=false setAll(false)
         end
@@ -267,7 +253,6 @@ reg(RunService.RenderStepped:Connect(function()
         local pct = math.clamp((ml.X-(GUI.X+12))/SLIDER_W, 0, 1)
         if     sliderActive==1 then Aim.Smoothness         = math.floor((0.01+pct*(0.3-0.01))*100)/100
         elseif sliderActive==2 then Aim.FOV_Radius         = math.floor(20+pct*(300-20))
-        elseif sliderActive==3 then Aim.PredictionStrength = math.floor((0.02+pct*(0.40-0.02))*1000)/1000
         end
         updateGUI()
     end

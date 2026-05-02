@@ -33,10 +33,7 @@ local Config = {
         FOV_Color = Color3.fromRGB(255,255,255),
         FOV_Thickness = 1,
         FOV_Transparency = 0.8,
-        VisibleCheck = true,
-        -- Prediction
-        Prediction = true,
-        PredictionStrength = 0.14, -- sekundy w przód (im wyższy ping, tym większa wartość)
+        VisibleCheck = true
     },
     Visuals = {
         Fullbright = false,
