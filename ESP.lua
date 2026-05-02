@@ -84,7 +84,7 @@ local function CreateESP(plr)
                     Name.Position=UDim2.new(0,Pos.X,0,Pos.Y-h/2-9)
                 else Hide() end
             else Hide() end
-        end)
+        end))
     end)()
 end
 
