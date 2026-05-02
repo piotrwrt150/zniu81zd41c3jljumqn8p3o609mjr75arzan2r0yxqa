@@ -4,6 +4,7 @@
 local repoURL = "https://raw.githubusercontent.com/piotrwrt150/zniu81zd41c3jljumqn8p3o609mjr75arzan2r0yxqa/main/"
 
 getgenv().ScoutCheat = {}
+_G.ScoutCheat = getgenv().ScoutCheat
 
 print("[ScoutCheat] Ładowanie Config.lua...")
 getgenv().ScoutCheat.Config = loadstring(game:HttpGet(repoURL .. "Config.lua"))()
