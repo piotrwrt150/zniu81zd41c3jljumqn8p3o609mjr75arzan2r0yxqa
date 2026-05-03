@@ -43,11 +43,6 @@ local Config = {
         Fullbright = false,
         NoFog = false,
         RainbowChams = false,
-        -- Bullet Tracers
-        BulletTracers = true,
-        BulletTracerColor = Color3.fromRGB(255, 80, 80),
-        BulletTracerThickness = 1.5,
-        BulletTracerFadeTime = 0.45, -- sekundy zanim linia zniknie
         -- Watermark
         Watermark = true,
     },

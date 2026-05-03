@@ -36,7 +36,6 @@ local function SaveConfig()
         Aim_SmoothVar      = Aim.SmoothnessVariance,
         Vis_Fullbright     = Visuals.Fullbright,
         Vis_NoFog          = Visuals.NoFog,
-        Vis_BulletTracers  = Visuals.BulletTracers,
         Vis_Watermark      = Visuals.Watermark,
         ESP_Enabled        = ESPConf.Enabled,
         ESP_Boxes          = ESPConf.Drawing.Boxes.Full.Enabled,
@@ -72,7 +71,6 @@ local function LoadConfig()
             Aim.SmoothnessVariance = b(data.Aim_SmoothVar,     Aim.SmoothnessVariance)
             Visuals.Fullbright     = b(data.Vis_Fullbright,    Visuals.Fullbright)
             Visuals.NoFog          = b(data.Vis_NoFog,         Visuals.NoFog)
-            Visuals.BulletTracers  = b(data.Vis_BulletTracers, Visuals.BulletTracers)
             Visuals.Watermark      = b(data.Vis_Watermark,     Visuals.Watermark)
             ESPConf.Enabled        = b(data.ESP_Enabled,       ESPConf.Enabled)
             ESPConf.Drawing.Boxes.Full.Enabled = b(data.ESP_Boxes, ESPConf.Drawing.Boxes.Full.Enabled)
@@ -238,7 +236,6 @@ local function updateGUI()
         drawToggle(3, 122, "Health Bar", ESPConf.Drawing.Healthbar.Enabled)
         drawToggle(4, 146, "Player Names", ESPConf.Drawing.Names.Enabled)
         drawToggle(5, 170, "Distance [m]", ESPConf.Options.Distance)
-        drawToggle(6, 194, "Bullet Tracers", Visuals.BulletTracers)
 
     elseif GUI.Tab == "Settings" then
         drawToggle(1, 74, "Watermark", Visuals.Watermark)
@@ -303,7 +300,6 @@ reg(UserInputService.InputBegan:Connect(function(input, gpe)
             if inBox(mx,my, x,y+122, w,20) then ESPConf.Drawing.Healthbar.Enabled = not ESPConf.Drawing.Healthbar.Enabled updateGUI() end
             if inBox(mx,my, x,y+146, w,20) then ESPConf.Drawing.Names.Enabled = not ESPConf.Drawing.Names.Enabled updateGUI() end
             if inBox(mx,my, x,y+170, w,20) then ESPConf.Options.Distance = not ESPConf.Options.Distance updateGUI() end
-            if inBox(mx,my, x,y+194, w,20) then Visuals.BulletTracers = not Visuals.BulletTracers updateGUI() end
 
         elseif GUI.Tab == "Settings" then
             if inBox(mx,my, x,y+74, w,20) then Visuals.Watermark = not Visuals.Watermark updateGUI() end
