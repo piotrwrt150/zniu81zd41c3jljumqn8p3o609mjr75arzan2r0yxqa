@@ -50,7 +50,16 @@ local function SaveConfig()
         Aim_Acceleration   = Aim.Acceleration,
         Aim_Braking        = Aim.Braking,
         Aim_MicroTremor    = Aim.MicroTremor,
-        Aim_TremorIntensity = Aim.TremorIntensity
+        Aim_TremorIntensity = Aim.TremorIntensity,
+        Aim_ReactionDelay  = Aim.ReactionDelay,
+        Aim_Overshooting   = Aim.Overshooting,
+        Aim_OvershootIntensity = Aim.OvershootIntensity,
+        Aim_Prediction     = Aim.Prediction,
+        Aim_PredictionStrength = Aim.PredictionStrength,
+        Aim_TargetLock     = Aim.TargetLock,
+        Aim_SwitchDelay    = Aim.SwitchDelay,
+        Aim_WeightedZones  = Aim.WeightedHitZones,
+        Aim_FittsLaw       = Aim.FittsLaw
     }
     local fileName = getFileName()
     if writefile then
@@ -83,6 +92,15 @@ local function LoadConfig()
             Aim.Braking            = b(data.Aim_Braking,       Aim.Braking)
             Aim.MicroTremor        = b(data.Aim_MicroTremor,   Aim.MicroTremor)
             Aim.TremorIntensity    = b(data.Aim_TremorIntensity, Aim.TremorIntensity)
+            Aim.ReactionDelay      = b(data.Aim_ReactionDelay,  Aim.ReactionDelay)
+            Aim.Overshooting       = b(data.Aim_Overshooting,   Aim.Overshooting)
+            Aim.OvershootIntensity = b(data.Aim_OvershootIntensity, Aim.OvershootIntensity)
+            Aim.Prediction         = b(data.Aim_Prediction,     Aim.Prediction)
+            Aim.PredictionStrength = b(data.Aim_PredictionStrength, Aim.PredictionStrength)
+            Aim.TargetLock         = b(data.Aim_TargetLock,     Aim.TargetLock)
+            Aim.SwitchDelay        = b(data.Aim_SwitchDelay,    Aim.SwitchDelay)
+            Aim.WeightedHitZones   = b(data.Aim_WeightedZones,  Aim.WeightedHitZones)
+            Aim.FittsLaw           = b(data.Aim_FittsLaw,       Aim.FittsLaw)
             
             if data.Aim_AimKey then
                 local s = data.Aim_AimKey
@@ -162,6 +180,7 @@ local dBorder    = trackD(mkLine(15))
 local tabBtns = {
     Aimbot   = { BG = trackD(mkRect(12)), Lbl = trackD(mkText(14,13)) },
     Visuals  = { BG = trackD(mkRect(12)), Lbl = trackD(mkText(14,13)) },
+    LegitPlus = { BG = trackD(mkRect(12)), Lbl = trackD(mkText(14,13)) },
     Settings = { BG = trackD(mkRect(12)), Lbl = trackD(mkText(14,13)) }
 }
 
@@ -284,19 +303,6 @@ local function updateGUI()
     dClose.Position = Vector2.new(x + w - 22, y + 8) dClose.Text = "X" dClose.Color = COL.Danger dClose.Visible = true
     
     -- Tabs (Sidebar)
-    local function drawTab(name, idx, label)
-        local btn = tabBtns[name]
-        local ty = y + hh + (idx - 1) * 40
-        btn.BG.Position = Vector2.new(x, ty) btn.BG.Size = Vector2.new(sw, 40)
-        btn.BG.Color = GUI.Tab == name and COL.Accent or COL.Sidebar
-        btn.BG.Transparency = GUI.Tab == name and 0.2 or 1
-        btn.BG.Visible = true
-        
-        btn.Lbl.Position = Vector2.new(x + 15, ty + 12)
-        btn.Lbl.Text = label
-        btn.Lbl.Color = GUI.Tab == name and COL.Text or COL.Sub
-        btn.Lbl.Visible = true
-    end
     
     drawTab("Aimbot", 1, "Aimbot")
     drawTab("Visuals", 2, "Visuals")
@@ -334,6 +340,18 @@ local function updateGUI()
         
         drawToggle(6, 150, "Fullbright", Visuals.Fullbright)
         drawToggle(7, 175, "No Fog", Visuals.NoFog)
+
+    elseif GUI.Tab == "LegitPlus" then
+        drawToggle(1, 15, "Target Lock", Aim.TargetLock)
+        drawToggle(2, 40, "Overshooting", Aim.Overshooting)
+        drawToggle(3, 65, "Prediction", Aim.Prediction)
+        drawToggle(4, 90, "Weighted Hit Zones", Aim.WeightedHitZones)
+        drawToggle(5, 115, "Dynamic Smooth (Fitts)", Aim.FittsLaw)
+
+        drawSlider(1, 155, "Reaction Delay", Aim.ReactionDelay / 0.5, string.format("%.2fs", Aim.ReactionDelay))
+        drawSlider(2, 195, "Switch Delay", Aim.SwitchDelay / 1.0, string.format("%.2fs", Aim.SwitchDelay))
+        drawSlider(3, 235, "Overshoot Intensity", Aim.OvershootIntensity / 2.0, string.format("%.2f", Aim.OvershootIntensity))
+        drawSlider(4, 275, "Prediction Strength", Aim.PredictionStrength / 2.0, string.format("%.2f", Aim.PredictionStrength))
 
     elseif GUI.Tab == "Settings" then
         drawToggle(1, 15, "Watermark", Visuals.Watermark)
@@ -388,7 +406,8 @@ reg(UserInputService.InputBegan:Connect(function(input, gpe)
         -- Sidebar clicks
         if inBox(mx,my, x, y + hh, sw, 40) then GUI.Tab = "Aimbot" updateGUI() return end
         if inBox(mx,my, x, y + hh + 40, sw, 40) then GUI.Tab = "Visuals" updateGUI() return end
-        if inBox(mx,my, x, y + hh + 80, sw, 40) then GUI.Tab = "Settings" updateGUI() return end
+        if inBox(mx,my, x, y + hh + 80, sw, 40) then GUI.Tab = "LegitPlus" updateGUI() return end
+        if inBox(mx,my, x, y + hh + 120, sw, 40) then GUI.Tab = "Settings" updateGUI() return end
 
         if GUI.Tab == "Aimbot" then
             local cx = x + sw + 20
@@ -428,6 +447,21 @@ reg(UserInputService.InputBegan:Connect(function(input, gpe)
             if inBox(mx,my, cx, y + hh + 150, cw, 20) then Visuals.Fullbright = not Visuals.Fullbright updateGUI() end
             if inBox(mx,my, cx, y + hh + 175, cw, 20) then Visuals.NoFog = not Visuals.NoFog updateGUI() end
 
+        elseif GUI.Tab == "LegitPlus" then
+            local cx = x + sw + 20
+            local cw = w - sw - 40
+            if inBox(mx,my, cx, y + hh + 15, cw, 20) then Aim.TargetLock = not Aim.TargetLock updateGUI() end
+            if inBox(mx,my, cx, y + hh + 40, cw, 20) then Aim.Overshooting = not Aim.Overshooting updateGUI() end
+            if inBox(mx,my, cx, y + hh + 65, cw, 20) then Aim.Prediction = not Aim.Prediction updateGUI() end
+            if inBox(mx,my, cx, y + hh + 90, cw, 20) then Aim.WeightedHitZones = not Aim.WeightedHitZones updateGUI() end
+            if inBox(mx,my, cx, y + hh + 115, cw, 20) then Aim.FittsLaw = not Aim.FittsLaw updateGUI() end
+            
+            local slw = cw - 80
+            if inBox(mx,my, cx, y + hh + 155, slw, 30) then sliderActive = 1 end
+            if inBox(mx,my, cx, y + hh + 195, slw, 30) then sliderActive = 2 end
+            if inBox(mx,my, cx, y + hh + 235, slw, 30) then sliderActive = 3 end
+            if inBox(mx,my, cx, y + hh + 275, slw, 30) then sliderActive = 4 end
+
         elseif GUI.Tab == "Settings" then
             local cx = x + sw + 20
             local cw = w - sw - 40
@@ -466,17 +500,26 @@ reg(RunService.RenderStepped:Connect(function()
     if GUI.Dragging then
         GUI.X = ml.X - GUI.DragOffset.X GUI.Y = ml.Y - GUI.DragOffset.Y updateGUI()
     end
-    if sliderActive and GUI.Tab == "Aimbot" then
+    if sliderActive and (GUI.Tab == "Aimbot" or GUI.Tab == "LegitPlus") then
         local cx = GUI.X + GUI.SidebarW + 20
         local cw = GUI.W - GUI.SidebarW - 40
         local slw = cw - 80
         local pct = math.clamp((ml.X - cx) / slw, 0, 1)
-        if     sliderActive == 1 then Aim.Smoothness = math.floor((0.01 + pct * 0.29) * 100) / 100
-        elseif sliderActive == 2 then Aim.FOV_Radius = math.floor(20 + pct * 280)
-        elseif sliderActive == 3 then Aim.Deadzone = math.floor(pct * 50)
-        elseif sliderActive == 4 then Aim.Acceleration = math.floor(pct * 100) / 100
-        elseif sliderActive == 5 then Aim.Braking = math.floor(pct * 100) / 100
-        elseif sliderActive == 6 then Aim.TremorIntensity = math.floor(pct * 100) / 100
+        
+        if GUI.Tab == "Aimbot" then
+            if     sliderActive == 1 then Aim.Smoothness = math.floor((0.01 + pct * 0.29) * 100) / 100
+            elseif sliderActive == 2 then Aim.FOV_Radius = math.floor(20 + pct * 280)
+            elseif sliderActive == 3 then Aim.Deadzone = math.floor(pct * 50)
+            elseif sliderActive == 4 then Aim.Acceleration = math.floor(pct * 100) / 100
+            elseif sliderActive == 5 then Aim.Braking = math.floor(pct * 100) / 100
+            elseif sliderActive == 6 then Aim.TremorIntensity = math.floor(pct * 100) / 100
+            end
+        elseif GUI.Tab == "LegitPlus" then
+            if     sliderActive == 1 then Aim.ReactionDelay = math.floor(pct * 0.5 * 100) / 100
+            elseif sliderActive == 2 then Aim.SwitchDelay = math.floor(pct * 1.0 * 100) / 100
+            elseif sliderActive == 3 then Aim.OvershootIntensity = math.floor(pct * 2.0 * 100) / 100
+            elseif sliderActive == 4 then Aim.PredictionStrength = math.floor(pct * 2.0 * 100) / 100
+            end
         end
         updateGUI()
     end

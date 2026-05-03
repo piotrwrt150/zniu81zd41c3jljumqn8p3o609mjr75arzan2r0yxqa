@@ -41,7 +41,16 @@ local Config = {
         Acceleration = 0.5,
         Braking = 0.5,
         MicroTremor = false,
-        TremorIntensity = 0.4
+        TremorIntensity = 0.4,
+        ReactionDelay = 0.15,
+        Overshooting = false,
+        OvershootIntensity = 0.5,
+        Prediction = false,
+        PredictionStrength = 1.0,
+        TargetLock = true,
+        SwitchDelay = 0.3,
+        WeightedHitZones = false,
+        FittsLaw = true
     },
     Visuals = {
         Fullbright = false,
