@@ -108,7 +108,7 @@ local function mkLine(z) local l = Drawing.new("Line") l.Visible=false l.ZIndex=
 local GUI = { 
     Visible = false, 
     X = 120, Y = 80, 
-    W = 460, H = 400, 
+    W = 460, H = 550, 
     Dragging = false, 
     DragOffset = Vector2.new(), 
     Tab = "Aimbot", 
@@ -295,15 +295,19 @@ local function updateGUI()
         drawToggle(4, 90, "Curve Aiming", Aim.CurveAiming)
         drawToggle(5, 115, "Smoothness Var.", Aim.SmoothnessVariance)
         drawToggle(6, 140, "FOV Circle", Aim.FOV_Enabled)
+        drawToggle(7, 165, "Micro Tremor", Aim.MicroTremor)
 
-        drawSlider(1, 175, "Smoothness", (Aim.Smoothness - 0.01) / 0.29, string.format("%.2f", Aim.Smoothness))
-        drawSlider(2, 215, "FOV Radius", (Aim.FOV_Radius - 20) / 280, tostring(math.floor(Aim.FOV_Radius)))
-        drawSlider(3, 255, "Deadzone", Aim.Deadzone / 50, tostring(math.floor(Aim.Deadzone)))
+        drawSlider(1, 200, "Smoothness", (Aim.Smoothness - 0.01) / 0.29, string.format("%.2f", Aim.Smoothness))
+        drawSlider(2, 240, "FOV Radius", (Aim.FOV_Radius - 20) / 280, tostring(math.floor(Aim.FOV_Radius)))
+        drawSlider(3, 280, "Deadzone", Aim.Deadzone / 50, tostring(math.floor(Aim.Deadzone)))
+        drawSlider(4, 320, "Acceleration", Aim.Acceleration, string.format("%.2f", Aim.Acceleration))
+        drawSlider(5, 360, "Braking", Aim.Braking, string.format("%.2f", Aim.Braking))
+        drawSlider(6, 400, "Tremor Intensity", Aim.TremorIntensity, string.format("%.2f", Aim.TremorIntensity))
         
-        drawButton(btn1BG, btn1Lbl, btn1Val, 295, "Target Part:", Aim.AimPart)
+        drawButton(btn1BG, btn1Lbl, btn1Val, 440, "Target Part:", Aim.AimPart)
         
         local keyName = tostring(Aim.AimKey):split(".")[3]
-        drawButton(btn2BG, btn2Lbl, btn2Val, 325, "Aim Keybind:", GUI.Binding and "..." or keyName)
+        drawButton(btn2BG, btn2Lbl, btn2Val, 470, "Aim Keybind:", GUI.Binding and "..." or keyName)
 
     elseif GUI.Tab == "Visuals" then
         drawToggle(1, 15, "ESP Master Switch", ESPConf.Enabled)
@@ -375,17 +379,21 @@ reg(UserInputService.InputBegan:Connect(function(input, gpe)
             if inBox(mx,my, cx, y + hh + 90, cw, 20) then Aim.CurveAiming = not Aim.CurveAiming updateGUI() end
             if inBox(mx,my, cx, y + hh + 115, cw, 20) then Aim.SmoothnessVariance = not Aim.SmoothnessVariance updateGUI() end
             if inBox(mx,my, cx, y + hh + 140, cw, 20) then Aim.FOV_Enabled = not Aim.FOV_Enabled updateGUI() end
+            if inBox(mx,my, cx, y + hh + 165, cw, 20) then Aim.MicroTremor = not Aim.MicroTremor updateGUI() end
             
             local slw = cw - 80
-            if inBox(mx,my, cx, y + hh + 175, slw, 30) then sliderActive = 1 end
-            if inBox(mx,my, cx, y + hh + 215, slw, 30) then sliderActive = 2 end
-            if inBox(mx,my, cx, y + hh + 255, slw, 30) then sliderActive = 3 end
+            if inBox(mx,my, cx, y + hh + 200, slw, 30) then sliderActive = 1 end
+            if inBox(mx,my, cx, y + hh + 240, slw, 30) then sliderActive = 2 end
+            if inBox(mx,my, cx, y + hh + 280, slw, 30) then sliderActive = 3 end
+            if inBox(mx,my, cx, y + hh + 320, slw, 30) then sliderActive = 4 end
+            if inBox(mx,my, cx, y + hh + 360, slw, 30) then sliderActive = 5 end
+            if inBox(mx,my, cx, y + hh + 400, slw, 30) then sliderActive = 6 end
 
-            if inBox(mx,my, cx, y + hh + 295, cw, 24) then
+            if inBox(mx,my, cx, y + hh + 440, cw, 24) then
                 local p = {"Head", "HumanoidRootPart", "UpperTorso"}
                 Aim.AimPart = p[(table.find(p, Aim.AimPart) or 1) % 3 + 1] updateGUI()
             end
-            if inBox(mx,my, cx, y + hh + 325, cw, 24) then
+            if inBox(mx,my, cx, y + hh + 470, cw, 24) then
                 GUI.Binding = true updateGUI()
             end
 
@@ -435,6 +443,9 @@ reg(RunService.RenderStepped:Connect(function()
         if     sliderActive == 1 then Aim.Smoothness = math.floor((0.01 + pct * 0.29) * 100) / 100
         elseif sliderActive == 2 then Aim.FOV_Radius = math.floor(20 + pct * 280)
         elseif sliderActive == 3 then Aim.Deadzone = math.floor(pct * 50)
+        elseif sliderActive == 4 then Aim.Acceleration = math.floor(pct * 100) / 100
+        elseif sliderActive == 5 then Aim.Braking = math.floor(pct * 100) / 100
+        elseif sliderActive == 6 then Aim.TremorIntensity = math.floor(pct * 100) / 100
         end
         updateGUI()
     end

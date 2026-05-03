@@ -37,7 +37,11 @@ local Config = {
         FOV_Color = Color3.fromRGB(255,255,255),
         FOV_Thickness = 1,
         FOV_Transparency = 0.8,
-        VisibleCheck = true
+        VisibleCheck = true,
+        Acceleration = 0.5,
+        Braking = 0.5,
+        MicroTremor = false,
+        TremorIntensity = 0.4
     },
     Visuals = {
         Fullbright = false,

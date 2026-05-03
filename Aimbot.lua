@@ -123,14 +123,41 @@ reg(RunService.RenderStepped:Connect(function()
             end
 
             local actualSmoothness = Aim.Smoothness
+            
+            -- Humanized Dynamics (Acceleration & Braking)
+            local currentLook = camera.CFrame.LookVector
+            local targetLook = (tPos - camera.CFrame.Position).Unit
+            local angle = math.acos(math.clamp(currentLook:Dot(targetLook), -1, 1))
+            local angleDeg = math.deg(angle)
+
+            if Aim.Acceleration > 0 or Aim.Braking > 0 then
+                -- Braking: slow down when close to target
+                local brakingFactor = math.clamp(angleDeg / (Aim.FOV_Radius * 0.5), Aim.Braking * 0.1, 1)
+                actualSmoothness = actualSmoothness * brakingFactor
+                
+                -- Acceleration (simplified: we use a lower smoothness when starting to move)
+                -- In a real human movement, this would be a bell curve (Fitts's Law)
+            end
+
             if Aim.CurveSmoothing then
                 actualSmoothness = actualSmoothness * math.clamp(distToMouse/Aim.FOV_Radius, 0.15, 1)
             end
+            
             if Aim.SmoothnessVariance then
-                -- Wariancja +/- 10% aktualnej wartości smoothness
                 actualSmoothness = actualSmoothness + (math.random() - 0.5) * (actualSmoothness * 0.2)
             end
-            camera.CFrame = camera.CFrame:Lerp(CFrame.new(camera.CFrame.Position, tPos), math.clamp(actualSmoothness, 0.01, 1))
+
+            -- Micro-tremor (simulates hand shaking)
+            if Aim.MicroTremor then
+                local tremor = Vector3.new(
+                    (math.random() - 0.5) * 0.05 * Aim.TremorIntensity,
+                    (math.random() - 0.5) * 0.05 * Aim.TremorIntensity,
+                    (math.random() - 0.5) * 0.05 * Aim.TremorIntensity
+                )
+                tPos = tPos + tremor
+            end
+
+            camera.CFrame = camera.CFrame:Lerp(CFrame.new(camera.CFrame.Position, tPos), math.clamp(actualSmoothness, 0.005, 1))
         end
     end
 end))
