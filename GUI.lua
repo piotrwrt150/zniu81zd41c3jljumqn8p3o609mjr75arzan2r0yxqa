@@ -34,6 +34,7 @@ local function SaveConfig()
         Aim_CurveAiming    = Aim.CurveAiming,
         Aim_CurveStrength  = Aim.CurveStrength,
         Aim_SmoothVar      = Aim.SmoothnessVariance,
+        Aim_AimKey         = tostring(Aim.AimKey),
         Vis_Fullbright     = Visuals.Fullbright,
         Vis_NoFog          = Visuals.NoFog,
         Vis_Watermark      = Visuals.Watermark,
@@ -69,6 +70,16 @@ local function LoadConfig()
             Aim.CurveAiming        = b(data.Aim_CurveAiming,   Aim.CurveAiming)
             Aim.CurveStrength      = b(data.Aim_CurveStrength, Aim.CurveStrength)
             Aim.SmoothnessVariance = b(data.Aim_SmoothVar,     Aim.SmoothnessVariance)
+            
+            if data.Aim_AimKey then
+                local s = data.Aim_AimKey
+                if s:find("UserInputType") then
+                    Aim.AimKey = Enum.UserInputType[s:split(".")[3]]
+                elseif s:find("KeyCode") then
+                    Aim.AimKey = Enum.KeyCode[s:split(".")[3]]
+                end
+            end
+
             Visuals.Fullbright     = b(data.Vis_Fullbright,    Visuals.Fullbright)
             Visuals.NoFog          = b(data.Vis_NoFog,         Visuals.NoFog)
             Visuals.Watermark      = b(data.Vis_Watermark,     Visuals.Watermark)
@@ -94,7 +105,7 @@ local function mkText(s,z) local t = Drawing.new("Text") t.Size=s t.Font=Drawing
 local function mkLine(z) local l = Drawing.new("Line") l.Visible=false l.ZIndex=z return regD(l) end
 
 -- --- GUI state ----------------------------------------------------------------
-local GUI = { Visible=false, X=120, Y=80, W=320, H=420, Dragging=false, DragOffset=Vector2.new(), Tab="Aimbot" }
+local GUI = { Visible=false, X=120, Y=80, W=320, H=420, Dragging=false, DragOffset=Vector2.new(), Tab="Aimbot", Binding=false }
 local COL = {
     BG     = Color3.fromRGB(12,12,22),
     Panel  = Color3.fromRGB(25,25,42),
@@ -110,7 +121,6 @@ local function UpdateAccent()
     COL.Accent = THEMES[GUIConf.Theme] or THEMES.Purple
 end
 UpdateAccent()
-
 -- --- Drawing objects ----------------------------------------------------------
 local ALL = {}
 local function trackD(d) table.insert(ALL, d); return d; end
@@ -144,6 +154,7 @@ end
 
 -- Dropdown / Buttons (Theme, Aim Part, Unload)
 local btn1BG = trackD(mkRect(12)); local btn1Lbl = trackD(mkText(13,13)); local btn1Val = trackD(mkText(13,13))
+local btn2BG = trackD(mkRect(12)); local btn2Lbl = trackD(mkText(13,13)); local btn2Val = trackD(mkText(13,13))
 local btnUnload = trackD(mkRect(12)); local lblUnload = trackD(mkText(14,13))
 
 local SLIDER_W = 180
@@ -212,6 +223,7 @@ local function updateGUI()
     cBG.Position = Vector2.new(x+4, y+64) cBG.Size = Vector2.new(w-8, h-68) cBG.Color = Color3.fromRGB(18,18,28) cBG.Visible = true
 
     if GUI.Tab == "Aimbot" then
+        GUI.H = 450
         drawToggle(1, 74, "Aimbot Enabled", Aim.Enabled)
         drawToggle(2, 98, "Visible Check", Aim.VisibleCheck)
         drawToggle(3, 122, "Closest Bone", Aim.ClosestBone)
@@ -229,8 +241,12 @@ local function updateGUI()
         drawSlider(4, 348, "Target Deadzone", s4pct, tostring(math.floor(Aim.Deadzone)))
 
         drawButton(btn1BG, btn1Lbl, btn1Val, 388, "Aim Part:", Aim.AimPart)
+        
+        local keyName = tostring(Aim.AimKey):split(".")[3]
+        drawButton(btn2BG, btn2Lbl, btn2Val, 412, "Aim Keybind:", GUI.Binding and "..." or keyName)
 
     elseif GUI.Tab == "Visuals" then
+        GUI.H = 420
         drawToggle(1, 74, "ESP Master Switch", ESPConf.Enabled)
         drawToggle(2, 98, "Player Boxes", ESPConf.Drawing.Boxes.Full.Enabled)
         drawToggle(3, 122, "Health Bar", ESPConf.Drawing.Healthbar.Enabled)
@@ -238,14 +254,15 @@ local function updateGUI()
         drawToggle(5, 170, "Distance [m]", ESPConf.Options.Distance)
 
     elseif GUI.Tab == "Settings" then
+        GUI.H = 420
         drawToggle(1, 74, "Watermark", Visuals.Watermark)
         
         drawButton(btn1BG, btn1Lbl, btn1Val, 108, "GUI Theme:", GUIConf.Theme)
 
         -- Unload button
-        btnUnload.Position=Vector2.new(x+16,y+h-38) btnUnload.Size=Vector2.new(w-32,26)
+        btnUnload.Position=Vector2.new(x+16,y+GUI.H-38) btnUnload.Size=Vector2.new(w-32,26)
         btnUnload.Color=COL.Danger btnUnload.Transparency=0.35 btnUnload.Visible=true
-        lblUnload.Position=Vector2.new(x+w/2-55,y+h-33) lblUnload.Text="  UNLOAD SCRIPT" lblUnload.Color=COL.Text lblUnload.Visible=true
+        lblUnload.Position=Vector2.new(x+w/2-55,y+GUI.H-33) lblUnload.Text="  UNLOAD SCRIPT" lblUnload.Color=COL.Text lblUnload.Visible=true
     end
 end
 
@@ -261,7 +278,16 @@ reg(UserInputService.InputBegan:Connect(function(input, gpe)
         if getgenv().ScoutUnload then getgenv().ScoutUnload() end
         GUI.Visible=false setAll(false) return
     end
-    if not GUI.Visible then return end
+    if GUI.Binding then
+        if input.UserInputType == Enum.UserInputType.Keyboard then
+            Aim.AimKey = input.KeyCode
+        else
+            Aim.AimKey = input.UserInputType
+        end
+        GUI.Binding = false
+        updateGUI()
+        return
+    end
 
     local ml = UserInputService:GetMouseLocation()
     local mx,my = ml.X, ml.Y
@@ -292,6 +318,11 @@ reg(UserInputService.InputBegan:Connect(function(input, gpe)
             if inBox(mx,my, x+16,y+388, w-32,22) then
                 local p={"Head","HumanoidRootPart","UpperTorso"}
                 Aim.AimPart=p[(table.find(p,Aim.AimPart) or 1)%3+1] updateGUI()
+            end
+            
+            if inBox(mx,my, x+16,y+412, w-32,22) then
+                GUI.Binding = true
+                updateGUI()
             end
 
         elseif GUI.Tab == "Visuals" then

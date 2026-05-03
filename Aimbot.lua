@@ -76,7 +76,7 @@ end
 
 reg(UserInputService.InputBegan:Connect(function(input, gpe)
     if gpe then return end
-    if input.UserInputType == Aim.AimKey then
+    if input.UserInputType == Aim.AimKey or input.KeyCode == Aim.AimKey then
         aiming = true
         if Aim.Randomization then 
             randomOffset = Vector3.new((math.random()-0.5)*Aim.RandomIntensity, (math.random()-0.5)*Aim.RandomIntensity, (math.random()-0.5)*Aim.RandomIntensity) 
@@ -85,7 +85,7 @@ reg(UserInputService.InputBegan:Connect(function(input, gpe)
 end))
 
 reg(UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType==Aim.AimKey then aiming=false end
+    if input.UserInputType == Aim.AimKey or input.KeyCode == Aim.AimKey then aiming = false end
 end))
 
 reg(RunService.RenderStepped:Connect(function()
