@@ -219,17 +219,18 @@ local function updateGUI()
         drawToggle(3, 122, "Closest Bone", Aim.ClosestBone)
         drawToggle(4, 146, "Curve Aiming", Aim.CurveAiming)
         drawToggle(5, 170, "Smoothness Var.", Aim.SmoothnessVariance)
+        drawToggle(6, 194, "FOV Circle", Aim.FOV_Enabled)
 
         local s1pct = (Aim.Smoothness-0.01)/(0.3-0.01)
-        drawSlider(1, 204, "Legit Smoothness", s1pct, string.format("%.2f", Aim.Smoothness))
+        drawSlider(1, 228, "Legit Smoothness", s1pct, string.format("%.2f", Aim.Smoothness))
         local s2pct = (Aim.FOV_Radius-20)/(300-20)
-        drawSlider(2, 244, "FOV Radius", s2pct, tostring(math.floor(Aim.FOV_Radius)))
+        drawSlider(2, 268, "FOV Radius", s2pct, tostring(math.floor(Aim.FOV_Radius)))
         local s3pct = (Aim.CurveStrength-0.1)/(3.0-0.1)
-        drawSlider(3, 284, "Curve Strength", s3pct, string.format("%.2f", Aim.CurveStrength))
+        drawSlider(3, 308, "Curve Strength", s3pct, string.format("%.2f", Aim.CurveStrength))
         local s4pct = (Aim.Deadzone-0)/(50-0)
-        drawSlider(4, 324, "Target Deadzone", s4pct, tostring(math.floor(Aim.Deadzone)))
+        drawSlider(4, 348, "Target Deadzone", s4pct, tostring(math.floor(Aim.Deadzone)))
 
-        drawButton(btn1BG, btn1Lbl, btn1Val, 364, "Aim Part:", Aim.AimPart)
+        drawButton(btn1BG, btn1Lbl, btn1Val, 388, "Aim Part:", Aim.AimPart)
 
     elseif GUI.Tab == "Visuals" then
         drawToggle(1, 74, "ESP Master Switch", ESPConf.Enabled)
@@ -237,8 +238,7 @@ local function updateGUI()
         drawToggle(3, 122, "Health Bar", ESPConf.Drawing.Healthbar.Enabled)
         drawToggle(4, 146, "Player Names", ESPConf.Drawing.Names.Enabled)
         drawToggle(5, 170, "Distance [m]", ESPConf.Options.Distance)
-        drawToggle(6, 194, "FOV Circle", Aim.FOV_Enabled)
-        drawToggle(7, 218, "Bullet Tracers", Visuals.BulletTracers)
+        drawToggle(6, 194, "Bullet Tracers", Visuals.BulletTracers)
 
     elseif GUI.Tab == "Settings" then
         drawToggle(1, 74, "Watermark", Visuals.Watermark)
@@ -285,13 +285,14 @@ reg(UserInputService.InputBegan:Connect(function(input, gpe)
             if inBox(mx,my, x,y+122, w,20) then Aim.ClosestBone = not Aim.ClosestBone updateGUI() end
             if inBox(mx,my, x,y+146, w,20) then Aim.CurveAiming = not Aim.CurveAiming updateGUI() end
             if inBox(mx,my, x,y+170, w,20) then Aim.SmoothnessVariance = not Aim.SmoothnessVariance updateGUI() end
+            if inBox(mx,my, x,y+194, w,20) then Aim.FOV_Enabled = not Aim.FOV_Enabled updateGUI() end
             
-            if inBox(mx,my, x+16,y+204, SLIDER_W,30) then sliderActive=1 end
-            if inBox(mx,my, x+16,y+244, SLIDER_W,30) then sliderActive=2 end
-            if inBox(mx,my, x+16,y+284, SLIDER_W,30) then sliderActive=3 end
-            if inBox(mx,my, x+16,y+324, SLIDER_W,30) then sliderActive=4 end
+            if inBox(mx,my, x+16,y+228, SLIDER_W,30) then sliderActive=1 end
+            if inBox(mx,my, x+16,y+268, SLIDER_W,30) then sliderActive=2 end
+            if inBox(mx,my, x+16,y+308, SLIDER_W,30) then sliderActive=3 end
+            if inBox(mx,my, x+16,y+348, SLIDER_W,30) then sliderActive=4 end
 
-            if inBox(mx,my, x+16,y+364, w-32,22) then
+            if inBox(mx,my, x+16,y+388, w-32,22) then
                 local p={"Head","HumanoidRootPart","UpperTorso"}
                 Aim.AimPart=p[(table.find(p,Aim.AimPart) or 1)%3+1] updateGUI()
             end
@@ -302,8 +303,7 @@ reg(UserInputService.InputBegan:Connect(function(input, gpe)
             if inBox(mx,my, x,y+122, w,20) then ESPConf.Drawing.Healthbar.Enabled = not ESPConf.Drawing.Healthbar.Enabled updateGUI() end
             if inBox(mx,my, x,y+146, w,20) then ESPConf.Drawing.Names.Enabled = not ESPConf.Drawing.Names.Enabled updateGUI() end
             if inBox(mx,my, x,y+170, w,20) then ESPConf.Options.Distance = not ESPConf.Options.Distance updateGUI() end
-            if inBox(mx,my, x,y+194, w,20) then Aim.FOV_Enabled = not Aim.FOV_Enabled updateGUI() end
-            if inBox(mx,my, x,y+218, w,20) then Visuals.BulletTracers = not Visuals.BulletTracers updateGUI() end
+            if inBox(mx,my, x,y+194, w,20) then Visuals.BulletTracers = not Visuals.BulletTracers updateGUI() end
 
         elseif GUI.Tab == "Settings" then
             if inBox(mx,my, x,y+74, w,20) then Visuals.Watermark = not Visuals.Watermark updateGUI() end
