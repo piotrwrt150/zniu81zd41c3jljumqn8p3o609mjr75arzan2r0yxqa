@@ -105,16 +105,29 @@ local function mkText(s,z) local t = Drawing.new("Text") t.Size=s t.Font=Drawing
 local function mkLine(z) local l = Drawing.new("Line") l.Visible=false l.ZIndex=z return regD(l) end
 
 -- --- GUI state ----------------------------------------------------------------
-local GUI = { Visible=false, X=120, Y=80, W=320, H=420, Dragging=false, DragOffset=Vector2.new(), Tab="Aimbot", Binding=false }
+local GUI = { 
+    Visible = false, 
+    X = 120, Y = 80, 
+    W = 460, H = 340, 
+    Dragging = false, 
+    DragOffset = Vector2.new(), 
+    Tab = "Aimbot", 
+    Binding = false,
+    SidebarW = 100,
+    HeaderH = 34
+}
+
 local COL = {
-    BG     = Color3.fromRGB(12,12,22),
-    Panel  = Color3.fromRGB(25,25,42),
+    BG     = Color3.fromRGB(15, 15, 25),
+    Sidebar = Color3.fromRGB(22, 22, 35),
+    Panel  = Color3.fromRGB(28, 28, 48),
     Accent = THEMES[GUIConf.Theme] or THEMES.Purple,
-    Text   = Color3.new(1,1,1),
-    Sub    = Color3.fromRGB(155,155,180),
-    Slider = Color3.fromRGB(55,55,95),
-    Off    = Color3.fromRGB(70,70,80),
-    Danger = Color3.fromRGB(200,50,50),
+    Text   = Color3.new(1, 1, 1),
+    Sub    = Color3.fromRGB(160, 160, 185),
+    Slider = Color3.fromRGB(45, 45, 75),
+    Off    = Color3.fromRGB(60, 60, 75),
+    Danger = Color3.fromRGB(220, 60, 60),
+    Border = Color3.fromRGB(45, 45, 65)
 }
 
 local function UpdateAccent()
@@ -126,15 +139,17 @@ local ALL = {}
 local function trackD(d) table.insert(ALL, d); return d; end
 
 local dBG       = trackD(mkRect(10))
-local dTitle    = trackD(mkText(15,12))
-local dClose    = trackD(mkText(18,12))
-local dSep1     = trackD(mkLine(11))
+local dSidebar   = trackD(mkRect(11))
+local dHeader    = trackD(mkRect(11))
+local dTitle     = trackD(mkText(16,12))
+local dClose     = trackD(mkText(18,12))
+local dBorder    = trackD(mkLine(15))
 
 -- Tabs
 local tabBtns = {
-    Aimbot   = { BG = trackD(mkRect(11)), Lbl = trackD(mkText(14,12)) },
-    Visuals  = { BG = trackD(mkRect(11)), Lbl = trackD(mkText(14,12)) },
-    Settings = { BG = trackD(mkRect(11)), Lbl = trackD(mkText(14,12)) }
+    Aimbot   = { BG = trackD(mkRect(12)), Lbl = trackD(mkText(14,13)) },
+    Visuals  = { BG = trackD(mkRect(12)), Lbl = trackD(mkText(14,13)) },
+    Settings = { BG = trackD(mkRect(12)), Lbl = trackD(mkText(14,13)) }
 }
 
 -- Content Area
@@ -166,103 +181,148 @@ local activeSlidersCount = 0
 local function setAll(v) for _,d in pairs(ALL) do d.Visible=v end end
 
 local function drawToggle(idx, yOff, label, state)
-    local tw,th = 32,16
-    local x,w = GUI.X, GUI.W
+    local tw, th = 34, 18
+    local x = GUI.X + GUI.SidebarW + 20
+    local w = GUI.W - GUI.SidebarW - 40
     local t = toggles[idx]
-    t.BG.Position   = Vector2.new(x+w-tw-16, GUI.Y+yOff) t.BG.Size = Vector2.new(tw,th)
-    t.BG.Color      = COL.Slider t.BG.Visible = true
-    t.Fill.Position = Vector2.new(x+w-tw-16+(state and tw-th or 0), GUI.Y+yOff)
-    t.Fill.Size     = Vector2.new(th,th)
-    t.Fill.Color    = state and COL.Accent or COL.Off t.Fill.Visible = true
-    t.Lbl.Position  = Vector2.new(x+16, GUI.Y+yOff) t.Lbl.Text = label t.Lbl.Color = COL.Text t.Lbl.Visible = true
+    
+    t.BG.Position   = Vector2.new(x + w - tw, GUI.Y + GUI.HeaderH + yOff)
+    t.BG.Size       = Vector2.new(tw, th)
+    t.BG.Color      = COL.Slider
+    t.BG.Visible    = true
+    
+    t.Fill.Position = Vector2.new(x + w - tw + (state and tw - th or 0), GUI.Y + GUI.HeaderH + yOff)
+    t.Fill.Size     = Vector2.new(th, th)
+    t.Fill.Color    = state and COL.Accent or COL.Off
+    t.Fill.Visible  = true
+    
+    t.Lbl.Position  = Vector2.new(x, GUI.Y + GUI.HeaderH + yOff + 2)
+    t.Lbl.Text      = label
+    t.Lbl.Color     = COL.Text
+    t.Lbl.Visible   = true
 end
 
 local function drawSlider(idx, yOff, label, pct, valStr)
-    local x = GUI.X
+    local x = GUI.X + GUI.SidebarW + 20
+    local w = GUI.W - GUI.SidebarW - 40
     local s = sliders[idx]
-    s.Lbl.Position = Vector2.new(x+16, GUI.Y+yOff) s.Lbl.Text = label s.Lbl.Color = COL.Sub s.Lbl.Visible = true
-    s.T.Position   = Vector2.new(x+16, GUI.Y+yOff+14) s.T.Size = Vector2.new(SLIDER_W,SLIDER_H) s.T.Color = COL.Slider s.T.Visible = true
-    s.F.Position   = Vector2.new(x+16, GUI.Y+yOff+14) s.F.Size = Vector2.new(math.max(4,SLIDER_W*pct),SLIDER_H) s.F.Color = COL.Accent s.F.Visible = true
-    s.Val.Position = Vector2.new(x+16+SLIDER_W+10, GUI.Y+yOff+9) s.Val.Text = valStr s.Val.Color = COL.Text s.Val.Visible = true
+    
+    s.Lbl.Position = Vector2.new(x, GUI.Y + GUI.HeaderH + yOff)
+    s.Lbl.Text     = label
+    s.Lbl.Color    = COL.Sub
+    s.Lbl.Visible  = true
+    
+    local sw = w - 80
+    s.T.Position   = Vector2.new(x, GUI.Y + GUI.HeaderH + yOff + 16)
+    s.T.Size       = Vector2.new(sw, 6)
+    s.T.Color      = COL.Slider
+    s.T.Visible    = true
+    
+    s.F.Position   = Vector2.new(x, GUI.Y + GUI.HeaderH + yOff + 16)
+    s.F.Size       = Vector2.new(math.max(2, sw * pct), 6)
+    s.F.Color      = COL.Accent
+    s.F.Visible    = true
+    
+    s.Val.Position = Vector2.new(x + sw + 10, GUI.Y + GUI.HeaderH + yOff + 12)
+    s.Val.Text     = valStr
+    s.Val.Color    = COL.Text
+    s.Val.Visible  = true
 end
 
 local function drawButton(bg, lbl, valTxt, yOff, text, valText)
-    local x,w = GUI.X, GUI.W
-    bg.Position = Vector2.new(x+16, GUI.Y+yOff) bg.Size = Vector2.new(w-32, 22) bg.Color = COL.Panel bg.Visible = true
-    lbl.Position = Vector2.new(x+22, GUI.Y+yOff+4) lbl.Text = text lbl.Color = COL.Sub lbl.Visible = true
+    local x = GUI.X + GUI.SidebarW + 20
+    local w = GUI.W - GUI.SidebarW - 40
+    
+    bg.Position  = Vector2.new(x, GUI.Y + GUI.HeaderH + yOff)
+    bg.Size      = Vector2.new(w, 24)
+    bg.Color     = COL.Panel
+    bg.Visible   = true
+    
+    lbl.Position = Vector2.new(x + 8, GUI.Y + GUI.HeaderH + yOff + 5)
+    lbl.Text     = text
+    lbl.Color    = COL.Sub
+    lbl.Visible  = true
+    
     if valTxt then
-        valTxt.Position = Vector2.new(x+w-100, GUI.Y+yOff+4) valTxt.Text = valText valTxt.Color = COL.Accent valTxt.Visible = true
+        valTxt.Position = Vector2.new(x + w - 100, GUI.Y + GUI.HeaderH + yOff + 5)
+        valTxt.Text     = valText
+        valTxt.Color    = COL.Accent
+        valTxt.Visible  = true
     end
 end
 
 local function updateGUI()
     if not GUI.Visible then setAll(false) return end
     UpdateAccent()
-    setAll(false) -- reset visibility
-    local x,y,w,h = GUI.X,GUI.Y,GUI.W,GUI.H
-
-    -- Background
-    dBG.Position=Vector2.new(x,y) dBG.Size=Vector2.new(w,h) dBG.Color=COL.BG dBG.Transparency=0.85 dBG.Visible=true
-    dTitle.Position=Vector2.new(x+12,y+10) dTitle.Text="ScoutCheat | K=Menu L=Save J=Load" dTitle.Color=COL.Accent dTitle.Visible=true
-    dClose.Position=Vector2.new(x+w-22,y+8) dClose.Text="X" dClose.Color=Color3.fromRGB(255,80,80) dClose.Visible=true
+    setAll(false)
     
-    -- Tabs (Y=34)
-    local tabW = math.floor(w / 3)
-    tabBtns.Aimbot.BG.Position = Vector2.new(x, y+34) tabBtns.Aimbot.BG.Size = Vector2.new(tabW, 26) 
-    tabBtns.Aimbot.BG.Color = GUI.Tab=="Aimbot" and COL.Accent or COL.Panel tabBtns.Aimbot.BG.Visible = true
-    tabBtns.Aimbot.Lbl.Position = Vector2.new(x+tabW/2-20, y+40) tabBtns.Aimbot.Lbl.Text = "Aimbot" tabBtns.Aimbot.Lbl.Color = COL.Text tabBtns.Aimbot.Lbl.Visible = true
+    local x,y,w,h = GUI.X, GUI.Y, GUI.W, GUI.H
+    local sw, hh = GUI.SidebarW, GUI.HeaderH
 
-    tabBtns.Visuals.BG.Position = Vector2.new(x+tabW, y+34) tabBtns.Visuals.BG.Size = Vector2.new(tabW, 26) 
-    tabBtns.Visuals.BG.Color = GUI.Tab=="Visuals" and COL.Accent or COL.Panel tabBtns.Visuals.BG.Visible = true
-    tabBtns.Visuals.Lbl.Position = Vector2.new(x+tabW+tabW/2-20, y+40) tabBtns.Visuals.Lbl.Text = "Visuals" tabBtns.Visuals.Lbl.Color = COL.Text tabBtns.Visuals.Lbl.Visible = true
+    -- Main BG
+    dBG.Position = Vector2.new(x, y) dBG.Size = Vector2.new(w, h) dBG.Color = COL.BG dBG.Transparency = 0.9 dBG.Visible = true
+    dSidebar.Position = Vector2.new(x, y + hh) dSidebar.Size = Vector2.new(sw, h - hh) dSidebar.Color = COL.Sidebar dSidebar.Visible = true
+    dHeader.Position = Vector2.new(x, y) dHeader.Size = Vector2.new(w, hh) dHeader.Color = COL.Sidebar dHeader.Visible = true
+    
+    dTitle.Position = Vector2.new(x + 12, y + 8) dTitle.Text = "ScoutCheat Premium" dTitle.Color = COL.Accent dTitle.Visible = true
+    dClose.Position = Vector2.new(x + w - 22, y + 8) dClose.Text = "X" dClose.Color = COL.Danger dClose.Visible = true
+    
+    -- Tabs (Sidebar)
+    local function drawTab(name, idx, label)
+        local btn = tabBtns[name]
+        local ty = y + hh + (idx - 1) * 40
+        btn.BG.Position = Vector2.new(x, ty) btn.BG.Size = Vector2.new(sw, 40)
+        btn.BG.Color = GUI.Tab == name and COL.Accent or COL.Sidebar
+        btn.BG.Transparency = GUI.Tab == name and 0.2 or 1
+        btn.BG.Visible = true
+        
+        btn.Lbl.Position = Vector2.new(x + 15, ty + 12)
+        btn.Lbl.Text = label
+        btn.Lbl.Color = GUI.Tab == name and COL.Text or COL.Sub
+        btn.Lbl.Visible = true
+    end
+    
+    drawTab("Aimbot", 1, "Aimbot")
+    drawTab("Visuals", 2, "Visuals")
+    drawTab("Settings", 3, "Settings")
 
-    tabBtns.Settings.BG.Position = Vector2.new(x+tabW*2, y+34) tabBtns.Settings.BG.Size = Vector2.new(w-tabW*2, 26) 
-    tabBtns.Settings.BG.Color = GUI.Tab=="Settings" and COL.Accent or COL.Panel tabBtns.Settings.BG.Visible = true
-    tabBtns.Settings.Lbl.Position = Vector2.new(x+tabW*2+tabW/2-25, y+40) tabBtns.Settings.Lbl.Text = "Settings" tabBtns.Settings.Lbl.Color = COL.Text tabBtns.Settings.Lbl.Visible = true
-
-    cBG.Position = Vector2.new(x+4, y+64) cBG.Size = Vector2.new(w-8, h-68) cBG.Color = Color3.fromRGB(18,18,28) cBG.Visible = true
+    cBG.Position = Vector2.new(x + sw + 5, y + hh + 5) cBG.Size = Vector2.new(w - sw - 10, h - hh - 10) cBG.Color = COL.Panel cBG.Visible = true
 
     if GUI.Tab == "Aimbot" then
-        GUI.H = 450
-        drawToggle(1, 74, "Aimbot Enabled", Aim.Enabled)
-        drawToggle(2, 98, "Visible Check", Aim.VisibleCheck)
-        drawToggle(3, 122, "Closest Bone", Aim.ClosestBone)
-        drawToggle(4, 146, "Curve Aiming", Aim.CurveAiming)
-        drawToggle(5, 170, "Smoothness Var.", Aim.SmoothnessVariance)
-        drawToggle(6, 194, "FOV Circle", Aim.FOV_Enabled)
+        drawToggle(1, 15, "Enabled", Aim.Enabled)
+        drawToggle(2, 40, "Visible Check", Aim.VisibleCheck)
+        drawToggle(3, 65, "Closest Bone", Aim.ClosestBone)
+        drawToggle(4, 90, "Curve Aiming", Aim.CurveAiming)
+        drawToggle(5, 115, "Smoothness Var.", Aim.SmoothnessVariance)
+        drawToggle(6, 140, "FOV Circle", Aim.FOV_Enabled)
 
-        local s1pct = (Aim.Smoothness-0.01)/(0.3-0.01)
-        drawSlider(1, 228, "Legit Smoothness", s1pct, string.format("%.2f", Aim.Smoothness))
-        local s2pct = (Aim.FOV_Radius-20)/(300-20)
-        drawSlider(2, 268, "FOV Radius", s2pct, tostring(math.floor(Aim.FOV_Radius)))
-        local s3pct = (Aim.CurveStrength-0.1)/(3.0-0.1)
-        drawSlider(3, 308, "Curve Strength", s3pct, string.format("%.2f", Aim.CurveStrength))
-        local s4pct = (Aim.Deadzone-0)/(50-0)
-        drawSlider(4, 348, "Target Deadzone", s4pct, tostring(math.floor(Aim.Deadzone)))
-
-        drawButton(btn1BG, btn1Lbl, btn1Val, 388, "Aim Part:", Aim.AimPart)
+        drawSlider(1, 175, "Smoothness", (Aim.Smoothness - 0.01) / 0.29, string.format("%.2f", Aim.Smoothness))
+        drawSlider(2, 215, "FOV Radius", (Aim.FOV_Radius - 20) / 280, tostring(math.floor(Aim.FOV_Radius)))
+        
+        drawButton(btn1BG, btn1Lbl, btn1Val, 260, "Target Part:", Aim.AimPart)
         
         local keyName = tostring(Aim.AimKey):split(".")[3]
-        drawButton(btn2BG, btn2Lbl, btn2Val, 412, "Aim Keybind:", GUI.Binding and "..." or keyName)
+        drawButton(btn2BG, btn2Lbl, btn2Val, 290, "Aim Keybind:", GUI.Binding and "..." or keyName)
 
     elseif GUI.Tab == "Visuals" then
-        GUI.H = 420
-        drawToggle(1, 74, "ESP Master Switch", ESPConf.Enabled)
-        drawToggle(2, 98, "Player Boxes", ESPConf.Drawing.Boxes.Full.Enabled)
-        drawToggle(3, 122, "Health Bar", ESPConf.Drawing.Healthbar.Enabled)
-        drawToggle(4, 146, "Player Names", ESPConf.Drawing.Names.Enabled)
-        drawToggle(5, 170, "Distance [m]", ESPConf.Options.Distance)
+        drawToggle(1, 15, "ESP Master Switch", ESPConf.Enabled)
+        drawToggle(2, 40, "Player Boxes", ESPConf.Drawing.Boxes.Full.Enabled)
+        drawToggle(3, 65, "Health Bar", ESPConf.Drawing.Healthbar.Enabled)
+        drawToggle(4, 90, "Player Names", ESPConf.Drawing.Names.Enabled)
+        drawToggle(5, 115, "Distance Info", ESPConf.Options.Distance)
+        
+        drawToggle(6, 150, "Fullbright", Visuals.Fullbright)
+        drawToggle(7, 175, "No Fog", Visuals.NoFog)
 
     elseif GUI.Tab == "Settings" then
-        GUI.H = 420
-        drawToggle(1, 74, "Watermark", Visuals.Watermark)
-        
-        drawButton(btn1BG, btn1Lbl, btn1Val, 108, "GUI Theme:", GUIConf.Theme)
+        drawToggle(1, 15, "Watermark", Visuals.Watermark)
+        drawButton(btn1BG, btn1Lbl, btn1Val, 45, "Theme Color:", GUIConf.Theme)
 
-        -- Unload button
-        btnUnload.Position=Vector2.new(x+16,y+GUI.H-38) btnUnload.Size=Vector2.new(w-32,26)
-        btnUnload.Color=COL.Danger btnUnload.Transparency=0.35 btnUnload.Visible=true
-        lblUnload.Position=Vector2.new(x+w/2-55,y+GUI.H-33) lblUnload.Text="  UNLOAD SCRIPT" lblUnload.Color=COL.Text lblUnload.Visible=true
+        btnUnload.Position = Vector2.new(x + sw + 20, y + h - 45)
+        btnUnload.Size = Vector2.new(w - sw - 40, 30)
+        btnUnload.Color = COL.Danger btnUnload.Visible = true
+        lblUnload.Position = Vector2.new(x + sw + (w - sw) / 2 - 45, y + h - 38)
+        lblUnload.Text = "UNLOAD SCRIPT" lblUnload.Color = COL.Text lblUnload.Visible = true
     end
 end
 
@@ -291,59 +351,62 @@ reg(UserInputService.InputBegan:Connect(function(input, gpe)
 
     local ml = UserInputService:GetMouseLocation()
     local mx,my = ml.X, ml.Y
-    local x,y,w,h = GUI.X,GUI.Y,GUI.W,GUI.H
+    local x,y,w,h = GUI.X, GUI.Y, GUI.W, GUI.H
+    local sw, hh = GUI.SidebarW, GUI.HeaderH
 
     if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        if inBox(mx,my, x+w-22,y+8, 16,16) then GUI.Visible=false setAll(false) return end
-        if inBox(mx,my, x,y, w,34) then GUI.Dragging=true GUI.DragOffset=Vector2.new(mx-x,my-y) return end
+        if inBox(mx,my, x + w - 22, y + 8, 16, 16) then GUI.Visible = false setAll(false) return end
+        if inBox(mx,my, x, y, w, hh) then GUI.Dragging = true GUI.DragOffset = Vector2.new(mx - x, my - y) return end
 
-        local tabW = math.floor(w / 3)
-        if inBox(mx,my, x, y+34, tabW, 26) then GUI.Tab="Aimbot" updateGUI() return end
-        if inBox(mx,my, x+tabW, y+34, tabW, 26) then GUI.Tab="Visuals" updateGUI() return end
-        if inBox(mx,my, x+tabW*2, y+34, tabW, 26) then GUI.Tab="Settings" updateGUI() return end
+        -- Sidebar clicks
+        if inBox(mx,my, x, y + hh, sw, 40) then GUI.Tab = "Aimbot" updateGUI() return end
+        if inBox(mx,my, x, y + hh + 40, sw, 40) then GUI.Tab = "Visuals" updateGUI() return end
+        if inBox(mx,my, x, y + hh + 80, sw, 40) then GUI.Tab = "Settings" updateGUI() return end
 
         if GUI.Tab == "Aimbot" then
-            if inBox(mx,my, x,y+74, w,20) then Aim.Enabled = not Aim.Enabled updateGUI() end
-            if inBox(mx,my, x,y+98, w,20) then Aim.VisibleCheck = not Aim.VisibleCheck updateGUI() end
-            if inBox(mx,my, x,y+122, w,20) then Aim.ClosestBone = not Aim.ClosestBone updateGUI() end
-            if inBox(mx,my, x,y+146, w,20) then Aim.CurveAiming = not Aim.CurveAiming updateGUI() end
-            if inBox(mx,my, x,y+170, w,20) then Aim.SmoothnessVariance = not Aim.SmoothnessVariance updateGUI() end
-            if inBox(mx,my, x,y+194, w,20) then Aim.FOV_Enabled = not Aim.FOV_Enabled updateGUI() end
+            local cx = x + sw + 20
+            local cw = w - sw - 40
+            if inBox(mx,my, cx, y + hh + 15, cw, 20) then Aim.Enabled = not Aim.Enabled updateGUI() end
+            if inBox(mx,my, cx, y + hh + 40, cw, 20) then Aim.VisibleCheck = not Aim.VisibleCheck updateGUI() end
+            if inBox(mx,my, cx, y + hh + 65, cw, 20) then Aim.ClosestBone = not Aim.ClosestBone updateGUI() end
+            if inBox(mx,my, cx, y + hh + 90, cw, 20) then Aim.CurveAiming = not Aim.CurveAiming updateGUI() end
+            if inBox(mx,my, cx, y + hh + 115, cw, 20) then Aim.SmoothnessVariance = not Aim.SmoothnessVariance updateGUI() end
+            if inBox(mx,my, cx, y + hh + 140, cw, 20) then Aim.FOV_Enabled = not Aim.FOV_Enabled updateGUI() end
             
-            if inBox(mx,my, x+16,y+228, SLIDER_W,30) then sliderActive=1 end
-            if inBox(mx,my, x+16,y+268, SLIDER_W,30) then sliderActive=2 end
-            if inBox(mx,my, x+16,y+308, SLIDER_W,30) then sliderActive=3 end
-            if inBox(mx,my, x+16,y+348, SLIDER_W,30) then sliderActive=4 end
+            local slw = cw - 80
+            if inBox(mx,my, cx, y + hh + 175, slw, 30) then sliderActive = 1 end
+            if inBox(mx,my, cx, y + hh + 215, slw, 30) then sliderActive = 2 end
 
-            if inBox(mx,my, x+16,y+388, w-32,22) then
-                local p={"Head","HumanoidRootPart","UpperTorso"}
-                Aim.AimPart=p[(table.find(p,Aim.AimPart) or 1)%3+1] updateGUI()
+            if inBox(mx,my, cx, y + hh + 260, cw, 24) then
+                local p = {"Head", "HumanoidRootPart", "UpperTorso"}
+                Aim.AimPart = p[(table.find(p, Aim.AimPart) or 1) % 3 + 1] updateGUI()
             end
-            
-            if inBox(mx,my, x+16,y+412, w-32,22) then
-                GUI.Binding = true
-                updateGUI()
+            if inBox(mx,my, cx, y + hh + 290, cw, 24) then
+                GUI.Binding = true updateGUI()
             end
 
         elseif GUI.Tab == "Visuals" then
-            if inBox(mx,my, x,y+74, w,20) then ESPConf.Enabled = not ESPConf.Enabled updateGUI() end
-            if inBox(mx,my, x,y+98, w,20) then ESPConf.Drawing.Boxes.Full.Enabled = not ESPConf.Drawing.Boxes.Full.Enabled updateGUI() end
-            if inBox(mx,my, x,y+122, w,20) then ESPConf.Drawing.Healthbar.Enabled = not ESPConf.Drawing.Healthbar.Enabled updateGUI() end
-            if inBox(mx,my, x,y+146, w,20) then ESPConf.Drawing.Names.Enabled = not ESPConf.Drawing.Names.Enabled updateGUI() end
-            if inBox(mx,my, x,y+170, w,20) then ESPConf.Options.Distance = not ESPConf.Options.Distance updateGUI() end
+            local cx = x + sw + 20
+            local cw = w - sw - 40
+            if inBox(mx,my, cx, y + hh + 15, cw, 20) then ESPConf.Enabled = not ESPConf.Enabled updateGUI() end
+            if inBox(mx,my, cx, y + hh + 40, cw, 20) then ESPConf.Drawing.Boxes.Full.Enabled = not ESPConf.Drawing.Boxes.Full.Enabled updateGUI() end
+            if inBox(mx,my, cx, y + hh + 65, cw, 20) then ESPConf.Drawing.Healthbar.Enabled = not ESPConf.Drawing.Healthbar.Enabled updateGUI() end
+            if inBox(mx,my, cx, y + hh + 90, cw, 20) then ESPConf.Drawing.Names.Enabled = not ESPConf.Drawing.Names.Enabled updateGUI() end
+            if inBox(mx,my, cx, y + hh + 115, cw, 20) then ESPConf.Options.Distance = not ESPConf.Options.Distance updateGUI() end
+            if inBox(mx,my, cx, y + hh + 150, cw, 20) then Visuals.Fullbright = not Visuals.Fullbright updateGUI() end
+            if inBox(mx,my, cx, y + hh + 175, cw, 20) then Visuals.NoFog = not Visuals.NoFog updateGUI() end
 
         elseif GUI.Tab == "Settings" then
-            if inBox(mx,my, x,y+74, w,20) then Visuals.Watermark = not Visuals.Watermark updateGUI() end
-            
-            if inBox(mx,my, x+16,y+108, w-32,22) then
+            local cx = x + sw + 20
+            local cw = w - sw - 40
+            if inBox(mx,my, cx, y + hh + 15, cw, 20) then Visuals.Watermark = not Visuals.Watermark updateGUI() end
+            if inBox(mx,my, cx, y + hh + 45, cw, 24) then
                 local idx = table.find(THEME_NAMES, GUIConf.Theme) or 1
-                GUIConf.Theme = THEME_NAMES[idx%#THEME_NAMES + 1]
-                updateGUI()
+                GUIConf.Theme = THEME_NAMES[idx % #THEME_NAMES + 1] updateGUI()
             end
-
-            if inBox(mx,my, x+16,y+h-38, w-32,26) then
+            if inBox(mx,my, cx, y + h - 45, cw, 30) then
                 if getgenv().ScoutUnload then getgenv().ScoutUnload() end
-                GUI.Visible=false setAll(false)
+                GUI.Visible = false setAll(false)
             end
         end
     end
@@ -351,21 +414,22 @@ end))
 
 reg(UserInputService.InputEnded:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        GUI.Dragging=false sliderActive=nil
+        GUI.Dragging = false sliderActive = nil
     end
 end))
 
 reg(RunService.RenderStepped:Connect(function()
     local ml = UserInputService:GetMouseLocation()
     if GUI.Dragging then
-        GUI.X=ml.X-GUI.DragOffset.X GUI.Y=ml.Y-GUI.DragOffset.Y updateGUI()
+        GUI.X = ml.X - GUI.DragOffset.X GUI.Y = ml.Y - GUI.DragOffset.Y updateGUI()
     end
     if sliderActive and GUI.Tab == "Aimbot" then
-        local pct = math.clamp((ml.X-(GUI.X+16))/SLIDER_W, 0, 1)
-        if     sliderActive==1 then Aim.Smoothness         = math.floor((0.01+pct*(0.3-0.01))*100)/100
-        elseif sliderActive==2 then Aim.FOV_Radius         = math.floor(20+pct*(300-20))
-        elseif sliderActive==3 then Aim.CurveStrength      = math.floor((0.1+pct*(3.0-0.1))*100)/100
-        elseif sliderActive==4 then Aim.Deadzone           = math.floor(pct*50)
+        local cx = GUI.X + GUI.SidebarW + 20
+        local cw = GUI.W - GUI.SidebarW - 40
+        local slw = cw - 80
+        local pct = math.clamp((ml.X - cx) / slw, 0, 1)
+        if     sliderActive == 1 then Aim.Smoothness = math.floor((0.01 + pct * 0.29) * 100) / 100
+        elseif sliderActive == 2 then Aim.FOV_Radius = math.floor(20 + pct * 280)
         end
         updateGUI()
     end
