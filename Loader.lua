@@ -4,7 +4,7 @@ local repoURL = "https://raw.githubusercontent.com/piotrwrt150/zniu81zd41c3jljum
 print("[Eclipse Hub] Pobieranie skryptu...")
 
 local status, content = pcall(function() 
-    return game:HttpGet(repoURL .. "src/Hub.lua") 
+    return game:HttpGet(repoURL .. "Hub.lua") 
 end)
 
 if status and content then

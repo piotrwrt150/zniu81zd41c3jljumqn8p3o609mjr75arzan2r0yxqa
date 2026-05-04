@@ -274,7 +274,7 @@ end)
 
 CreateButton(HubsTab, "ScoutCheat Premium", "Combat & Visuals", nil, nil, function()
     local repoURL = "https://raw.githubusercontent.com/piotrwrt150/zniu81zd41c3jljumqn8p3o609mjr75arzan2r0yxqa/main/"
-    loadstring(game:HttpGet(repoURL .. "src/ScoutCheat.lua"))()
+    loadstring(game:HttpGet(repoURL .. "ScoutCheat.lua"))()
 end)
 
 -- --- Initialization & Toggling ------------------------------------------------
