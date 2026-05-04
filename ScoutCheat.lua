@@ -2,7 +2,7 @@
 -- Ten plik ładuje wszystkie moduły cheata (Aimbot, ESP, GUI itp.)
 -- Jest odpalany z poziomu Eclipse Hub.
 
-local repoURL = "https://raw.githubusercontent.com/aH7pTep43dq/zniu81zd41c3jljumqn8p3o609mjr75arzan2r0yxqa/main/"
+local repoURL = "https://raw.githubusercontent.com/piotrwrt150/zniu81zd41c3jljumqn8p3o609mjr75arzan2r0yxqa/main/"
 
 if _G.ScoutCheatLoaded then
     print("[ScoutCheat] Skrypt jest już załadowany!")
