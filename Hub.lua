@@ -272,9 +272,9 @@ CreateButton(HubsTab, "Dex Explorer", "Game Viewer", nil, nil, function()
     loadstring(game:HttpGet("https://obj.wearedevs.net/2/scripts/Dex%20Explorer.lua"))()
 end)
 
-CreateButton(HubsTab, "ScoutCheat Premium", "Hub loader", nil, nil, function()
+CreateButton(HubsTab, "ScoutCheat Premium", "Combat & Visuals", nil, nil, function()
     local repoURL = "https://raw.githubusercontent.com/aH7pTep43dq/zniu81zd41c3jljumqn8p3o609mjr75arzan2r0yxqa/main/"
-    loadstring(game:HttpGet(repoURL .. "Loader.lua"))()
+    loadstring(game:HttpGet(repoURL .. "src/ScoutCheat.lua"))()
 end)
 
 -- --- Initialization & Toggling ------------------------------------------------
